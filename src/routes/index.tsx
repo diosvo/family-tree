@@ -1,18 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { ClientOnly, createFileRoute } from '@tanstack/react-router'
-import { ArrowLeftRight, Lock, LogOut, Plus, Search } from 'lucide-react'
+import { ClientOnly, createFileRoute } from '@tanstack/react-router';
+import { ArrowLeftRight, Lock, LogOut, Plus, Search } from 'lucide-react';
 
-import { AddPersonForm } from '@/components/family/AddPersonForm'
-import { CompareBar } from '@/components/family/CompareBar'
-import { KinshipView } from '@/components/family/KinshipView'
-import { Library } from '@/components/family/Library'
-import { MemorialList } from '@/components/family/MemorialList'
-import { PersonPanel } from '@/components/family/PersonPanel'
-import { SuggestionList } from '@/components/family/SuggestionList'
-import TreeView from '@/components/family/TreeView'
-import { Footer } from '@/components/Footer'
-import { Segmented } from '@/components/ui/segmented'
+import { AddPersonForm } from '@/components/family/AddPersonForm';
+import { CompareBar } from '@/components/family/CompareBar';
+import { KinshipView } from '@/components/family/KinshipView';
+import { Library } from '@/components/family/Library';
+import { MemorialList } from '@/components/family/MemorialList';
+import { PersonPanel } from '@/components/family/PersonPanel';
+import { SuggestionList } from '@/components/family/SuggestionList';
+import TreeView from '@/components/family/TreeView';
+import { Footer } from '@/components/Footer';
+import { Segmented } from '@/components/ui/segmented';
 import {
   childrenOf,
   familyAround,
@@ -22,12 +22,12 @@ import {
   reveal,
   revealChildren,
   surname,
-} from '@/lib/family-data'
-import { FamilyProvider, useFamily } from '@/lib/family-store'
-import { LangProvider, useT } from '@/lib/i18n'
-import { btn, btnPrimary } from '@/lib/utils'
+} from '@/lib/family-data';
+import { FamilyProvider, useFamily } from '@/lib/family-store';
+import { LangProvider, useT } from '@/lib/i18n';
+import { btn, btnPrimary } from '@/lib/utils';
 
-import type { Lang } from '@/lib/i18n'
+import type { Lang } from '@/lib/i18n';
 
 export const Route = createFileRoute('/')({
   head: () => ({
@@ -52,117 +52,117 @@ export const Route = createFileRoute('/')({
       </FamilyProvider>
     </LangProvider>
   ),
-})
+});
 
-type Tab = 'tree' | 'library' | 'memorials' | 'kinship' | 'suggestions'
-type Scope = 'main' | 'all' | 'custom'
+type Tab = 'tree' | 'library' | 'memorials' | 'kinship' | 'suggestions';
+type Scope = 'main' | 'all' | 'custom';
 /** Generations of the main house shown on first load. */
-const MAIN_DEPTH = 4
-const LANGS: Lang[] = ['vi', 'en']
+const MAIN_DEPTH = 4;
+const LANGS: Lang[] = ['vi', 'en'];
 
 function App() {
-  const { people, byId, suggestions, isAdmin, login, logout } = useFamily()
-  const { t, lang, setLang } = useT()
-  const [tab, setTab] = useState<Tab>('tree')
-  const [selectedId, setSelectedId] = useState<string>()
+  const { people, byId, suggestions, isAdmin, login, logout } = useFamily();
+  const { t, lang, setLang } = useT();
+  const [tab, setTab] = useState<Tab>('tree');
+  const [selectedId, setSelectedId] = useState<string>();
   /** People drawn in the tree; null = the main house at MAIN_DEPTH. */
-  const [visible, setVisible] = useState<Set<string> | null>(null)
+  const [visible, setVisible] = useState<Set<string> | null>(null);
   /** Family to frame after an expansion; null = fit the whole tree. */
-  const [focus, setFocus] = useState<string[] | null>(null)
-  const [q, setQ] = useState('')
+  const [focus, setFocus] = useState<string[] | null>(null);
+  const [q, setQ] = useState('');
   /** The two people compared in the kinship view. */
-  const [pair, setPair] = useState<[string, string]>(['', ''])
+  const [pair, setPair] = useState<[string, string]>(['', '']);
   /** When on, tapping cards in the tree fills the pair instead of selecting. */
-  const [compare, setCompare] = useState(false)
-  const [adding, setAdding] = useState(false)
-  const [now, setNow] = useState<Date | null>(null)
-  useEffect(() => setNow(new Date()), [])
+  const [compare, setCompare] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => setNow(new Date()), []);
 
   const mainIds = useMemo(() => {
-    const root = mainRootId(people)
+    const root = mainRootId(people);
 
     return root
       ? houseOf(people, root, MAIN_DEPTH)
-      : new Set(people.map((p) => p.id))
-  }, [people])
+      : new Set(people.map((p) => p.id));
+  }, [people]);
 
-  const shown = visible ?? mainIds
+  const shown = visible ?? mainIds;
 
   const visiblePeople = useMemo(
     () => people.filter((p) => shown.has(p.id)),
     [people, shown],
-  )
+  );
 
   const hiddenKids = useMemo(() => {
-    const m = new Map<string, number>()
+    const m = new Map<string, number>();
 
     visiblePeople.forEach((p) => {
-      const n = childrenOf(people, p.id).filter((c) => !shown.has(c.id)).length
-      if (n) m.set(p.id, n)
-    })
+      const n = childrenOf(people, p.id).filter((c) => !shown.has(c.id)).length;
+      if (n) m.set(p.id, n);
+    });
 
-    return m
-  }, [people, visiblePeople, shown])
+    return m;
+  }, [people, visiblePeople, shown]);
 
   const scope: Scope =
     visible === null
       ? 'main'
       : visible.size === people.length
         ? 'all'
-        : 'custom'
+        : 'custom';
 
-  const selected = selectedId ? byId.get(selectedId) : undefined
-  const results = q ? people.filter((p) => matches(p, q)) : people
+  const selected = selectedId ? byId.get(selectedId) : undefined;
+  const results = q ? people.filter((p) => matches(p, q)) : people;
 
   /** Select a person; make them visible in the tree if they are hidden. */
   const select = (id: string) => {
-    setSelectedId(id)
-    setTab('tree')
+    setSelectedId(id);
+    setTab('tree');
 
     if (!shown.has(id)) {
-      setVisible(reveal(people, shown, id))
-      setFocus(null)
+      setVisible(reveal(people, shown, id));
+      setFocus(null);
     }
-  }
+  };
 
   const expand = useCallback(
     (id: string) => {
-      setVisible((v) => revealChildren(people, v ?? mainIds, id))
-      setFocus(familyAround(people, id))
+      setVisible((v) => revealChildren(people, v ?? mainIds, id));
+      setFocus(familyAround(people, id));
     },
     [people, mainIds],
-  )
+  );
 
   /** Compare mode: first tap fills slot 1, second fills slot 2, then restart. */
   const pick = (id: string) =>
-    setPair(([a, b]) => (!a ? [id, b] : !b && a !== id ? [a, id] : [id, '']))
+    setPair(([a, b]) => (!a ? [id, b] : !b && a !== id ? [a, id] : [id, '']));
 
   const show = (ids: Set<string> | null) => {
-    setVisible(ids)
-    setFocus(null)
-  }
+    setVisible(ids);
+    setFocus(null);
+  };
 
   /** Show a person's house (họ) and make them the selected person. */
   const showHouse = (id: string) => {
-    show(houseOf(people, id))
-    setSelectedId(id)
-  }
+    show(houseOf(people, id));
+    setSelectedId(id);
+  };
 
   const setScope = (s: Scope) =>
-    show(s === 'all' ? new Set(people.map((p) => p.id)) : null)
+    show(s === 'all' ? new Set(people.map((p) => p.id)) : null);
 
   const tabs: Array<{ value: Tab; label: string }> = [
     { value: 'tree', label: t('tree') },
     { value: 'library', label: t('library') },
     { value: 'memorials', label: t('memorials') },
     { value: 'kinship', label: t('kinship') },
-  ]
+  ];
 
   if (isAdmin)
     tabs.push({
       value: 'suggestions',
       label: `${t('suggestions')}${suggestions.length ? ` (${suggestions.length})` : ''}`,
-    })
+    });
 
   return (
     <div className="flex h-dvh flex-col bg-background">
@@ -190,13 +190,13 @@ function App() {
             <button
               onClick={() => {
                 if (isAdmin) {
-                  if (tab === 'suggestions') setTab('tree')
+                  if (tab === 'suggestions') setTab('tree');
 
-                  return logout()
+                  return logout();
                 }
 
-                const c = prompt(t('adminPasscode'))
-                if (c && !login(c)) alert(t('wrongPasscode'))
+                const c = prompt(t('adminPasscode'));
+                if (c && !login(c)) alert(t('wrongPasscode'));
               }}
               className={`${btn} flex items-center gap-1`}
             >
@@ -224,8 +224,8 @@ function App() {
                 <button
                   key={p.id}
                   onClick={() => {
-                    select(p.id)
-                    setQ('')
+                    select(p.id);
+                    setQ('');
                   }}
                   className="block w-full border-b px-3 py-2 text-left text-sm last:border-b-0 hover:bg-accent"
                 >
@@ -258,7 +258,7 @@ function App() {
       <main className="relative flex min-h-0 flex-1 flex-col md:flex-row">
         {tab === 'tree' && (
           <>
-            <div className="relative min-h-0 flex-1">
+            <div className="relative min-h-48 flex-1">
               <ClientOnly
                 fallback={
                   <div className="p-6 text-sm text-muted-foreground">
@@ -305,15 +305,15 @@ function App() {
               )}
             </div>
             {selected && (
-              <aside className="max-h-[55dvh] shrink-0 overflow-auto border-t bg-card md:max-h-none md:w-96 md:border-t-0 md:border-l">
+              <aside className="max-h-[55dvh] min-h-0 overflow-auto border-t bg-card md:max-h-none md:w-96 md:shrink-0 md:border-t-0 md:border-l">
                 <PersonPanel
                   person={selected}
                   onClose={() => setSelectedId(undefined)}
                   onSelect={select}
                   onHouse={showHouse}
                   onCompare={(id) => {
-                    setPair(([, b]) => [id, b === id ? '' : b])
-                    setTab('kinship')
+                    setPair(([, b]) => [id, b === id ? '' : b]);
+                    setTab('kinship');
                   }}
                 />
               </aside>
@@ -355,5 +355,5 @@ function App() {
         </div>
       )}
     </div>
-  )
+  );
 }

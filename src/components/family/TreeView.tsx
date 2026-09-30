@@ -41,56 +41,60 @@ function PersonNode({ data }: NodeProps<Node<PData>>) {
   const { t } = useT();
   const { person: p, selected, mark, hiddenKids, onExpand } = data;
 
+  // Handles sit outside the animated card so React Flow measures them
+  // correctly without offsetting the edges.
   return (
-    <div
-      data-selected={selected}
-      className="relative node-in rounded-lg border border-(--c) bg-card px-3 py-2 shadow-sm transition-colors hover:bg-(--c-soft) data-[selected=true]:bg-(--c) data-[selected=true]:text-white data-[selected=true]:hover:bg-(--c)"
-      style={{ ...genderVars(p.gender), width: W }}
-    >
+    <div className="relative" style={{ width: W }}>
       <Handle
         type="target"
         position={Position.Top}
         className="!pointer-events-none !opacity-0"
       />
-      {mark > 0 && (
-        <span className="absolute -top-2 -left-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-medium text-primary-foreground shadow">
-          {mark}
-        </span>
-      )}
-      {p.deathYear && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="absolute top-1.5 right-1.5 h-2.5 w-4 rounded-[2px] bg-black" />
-          </TooltipTrigger>
-          <TooltipContent>{t('deceased')}</TooltipContent>
-        </Tooltip>
-      )}
-      <div className="truncate pr-4 text-sm font-medium">{p.name}</div>
-      <div className="truncate text-xs opacity-75">
-        {p.courtesyName ? `${courtesyNameText(p)} · ` : ''}
-        {lifespan(p)}
+      <div
+        data-selected={selected}
+        className="relative node-in rounded-lg border border-(--c) bg-card px-3 py-2 shadow-sm transition-colors hover:bg-(--c-soft) data-[selected=true]:bg-(--c) data-[selected=true]:text-white data-[selected=true]:hover:bg-(--c)"
+        style={genderVars(p.gender)}
+      >
+        {mark > 0 && (
+          <span className="absolute -top-2 -left-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-medium text-primary-foreground shadow">
+            {mark}
+          </span>
+        )}
+        {p.deathYear && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="absolute top-1.5 right-1.5 h-2.5 w-4 rounded-[2px] bg-black" />
+            </TooltipTrigger>
+            <TooltipContent>{t('deceased')}</TooltipContent>
+          </Tooltip>
+        )}
+        <div className="truncate pr-4 text-sm font-medium">{p.name}</div>
+        <div className="truncate text-xs opacity-75">
+          {p.courtesyName ? `${courtesyNameText(p)} · ` : ''}
+          {lifespan(p)}
+        </div>
+        {hiddenKids > 0 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={t('moreChildren', { n: hiddenKids })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExpand(p.id);
+                }}
+                className="nodrag nopan absolute -bottom-3 left-1/2 z-10 flex h-6 min-w-6 -translate-x-1/2 cursor-pointer items-center justify-center gap-0.5 rounded-full border border-(--c) bg-card px-1.5 text-[11px] leading-none text-foreground shadow-sm transition-all hover:scale-110 hover:bg-(--c) hover:text-white focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-95"
+              >
+                <ChevronDown className="h-3 w-3" />
+                {hiddenKids}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {t('moreChildren', { n: hiddenKids })}
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
-      {hiddenKids > 0 && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              aria-label={t('moreChildren', { n: hiddenKids })}
-              onClick={(e) => {
-                e.stopPropagation();
-                onExpand(p.id);
-              }}
-              className="nodrag nopan absolute -bottom-3 left-1/2 z-10 flex h-6 min-w-6 -translate-x-1/2 cursor-pointer items-center justify-center gap-0.5 rounded-full border border-(--c) bg-card px-1.5 text-[11px] leading-none text-foreground shadow-sm transition-all hover:scale-110 hover:bg-(--c) hover:text-white focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-95"
-            >
-              <ChevronDown className="h-3 w-3" />
-              {hiddenKids}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            {t('moreChildren', { n: hiddenKids })}
-          </TooltipContent>
-        </Tooltip>
-      )}
       <Handle
         type="source"
         position={Position.Bottom}
@@ -436,7 +440,6 @@ function Inner({
         nodesConnectable={false}
         minZoom={0.1}
         onInit={() => setReady(true)}
-        proOptions={{ hideAttribution: true }}
       >
         <Controls showInteractive={false} />
       </ReactFlow>
