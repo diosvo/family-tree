@@ -1,23 +1,28 @@
 import { useState } from 'react';
 
 import { SelectField } from '@/components/ui/select-field';
+import { birthYear } from '@/lib/family-data';
 import { useFamily } from '@/lib/family-store';
 import { useT } from '@/lib/i18n';
+import { normalizeDate } from '@/lib/lunar';
 import { btnPrimary, input } from '@/lib/utils';
 
-import type { Gender } from '@/lib/family-data';
+import type { Gender, Person } from '@/lib/family-data';
+
+type FormState = Required<Omit<Person, 'id' | 'spouseIds'>> & {
+  spouseId: string;
+};
 
 export function AddPersonForm({ onDone }: { onDone: () => void }) {
   const { people, addPerson } = useFamily();
   const { t } = useT();
 
-  const [f, setF] = useState({
+  const [f, setF] = useState<FormState>({
     name: '',
     courtesyName: '',
     gender: 'male' as Gender,
-    birthYear: '',
-    deathYear: '',
-    memorial: '',
+    birthDate: '',
+    deathDate: '',
     fatherId: '',
     motherId: '',
     spouseId: '',
@@ -40,7 +45,7 @@ export function AddPersonForm({ onDone }: { onDone: () => void }) {
       .filter((p) => !g || p.gender === g)
       .map((p) => ({
         value: p.id,
-        label: `${p.name} (${p.birthYear ?? '?'})`,
+        label: `${p.name} (${birthYear(p) ?? '?'})`,
       }));
 
   return (
@@ -54,9 +59,8 @@ export function AddPersonForm({ onDone }: { onDone: () => void }) {
           name: f.name.trim(),
           courtesyName: f.courtesyName || undefined,
           gender: f.gender,
-          birthYear: Number(f.birthYear) || undefined,
-          deathYear: Number(f.deathYear) || undefined,
-          memorial: f.memorial || undefined,
+          birthDate: normalizeDate(f.birthDate),
+          deathDate: normalizeDate(f.deathDate),
           fatherId: f.fatherId || undefined,
           motherId: f.motherId || undefined,
           spouseIds: f.spouseId ? [f.spouseId] : [],
@@ -75,9 +79,8 @@ export function AddPersonForm({ onDone }: { onDone: () => void }) {
           { value: 'female', label: t('female') },
         ]}
       />
-      {text('birthYear', t('birthYear'), true)}
-      {text('deathYear', t('deathYear'), true)}
-      {text('memorial', t('memorialDate'))}
+      {text('birthDate', t('birthDate'))}
+      {text('deathDate', t('deathDate'))}
       <SelectField
         value={f.fatherId}
         onChange={set('fatherId')}

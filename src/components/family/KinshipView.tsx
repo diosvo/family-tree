@@ -8,10 +8,20 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { courtesyNameText, genderVars, lifespan } from '@/lib/family-data';
+import {
+  birthYear,
+  genderVars,
+  givenName,
+  indexById,
+  lifespan,
+} from '@/lib/family-data';
+import { useFamily } from '@/lib/family-store';
 import { useT } from '@/lib/i18n';
-import { kinship } from '@/lib/kinship';
+import { kinLabel, kinship } from '@/lib/kinship';
 import { btn } from '@/lib/utils';
+
+import { CourtesyName } from './PersonParts';
+import { RegionSwitch } from './RegionSwitch';
 
 import type { Person } from '@/lib/family-data';
 
@@ -25,10 +35,7 @@ type Props = {
 function PersonCard({
   person,
   onSelect,
-}: {
-  person: Person;
-  onSelect: (id: string) => void;
-}) {
+}: { person: Person } & Pick<Props, 'onSelect'>) {
   return (
     <button
       onClick={() => onSelect(person.id)}
@@ -36,12 +43,7 @@ function PersonCard({
       className="w-full rounded-lg border border-(--c) bg-card px-3 py-2 text-left transition-colors hover:bg-(--c-soft)"
     >
       <div className="font-medium">
-        {person.name}{' '}
-        {person.courtesyName && (
-          <span className="font-normal text-muted-foreground">
-            {courtesyNameText(person)}
-          </span>
-        )}
+        {person.name} <CourtesyName person={person} className="font-normal" />
       </div>
       <div className="text-xs text-muted-foreground">{lifespan(person)}</div>
     </button>
@@ -51,8 +53,9 @@ function PersonCard({
 /** Pick two relatives and see how they are related and address each other. */
 export function KinshipView({ people, pair, onChange, onSelect }: Props) {
   const { t, lang } = useT();
+  const { region } = useFamily();
   const [aId, bId] = pair;
-  const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
+  const byId = useMemo(() => indexById(people), [people]);
 
   const options = useMemo(
     () =>
@@ -60,18 +63,21 @@ export function KinshipView({ people, pair, onChange, onSelect }: Props) {
         .sort((a, b) => a.name.localeCompare(b.name, lang))
         .map((p) => ({
           value: p.id,
-          label: `${p.name} (${p.birthYear ?? '?'})`,
+          label: `${p.name} (${birthYear(p) ?? '?'})`,
         })),
     [people, lang],
   );
 
   const a = byId.get(aId);
   const b = byId.get(bId);
-  const kin = a && b ? kinship(people, a.id, b.id) : null;
-  const first = (p: Person) => p.name.split(' ').pop() ?? p.name;
+  const kin = a && b ? kinship(people, a.id, b.id, region) : null;
 
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 space-y-4 overflow-auto p-4">
+      <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
+        {t('region')}
+        <RegionSwitch />
+      </div>
       <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
         <label className="space-y-1 text-xs text-muted-foreground">
           {t('personA')}
@@ -125,7 +131,7 @@ export function KinshipView({ people, pair, onChange, onSelect }: Props) {
             {t('isOf', {
               a: a.name,
               b: b.name,
-              rel: lang === 'vi' ? kin.vi : `${kin.en} (${kin.vi})`,
+              rel: kinLabel(kin, lang),
             })}
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -141,7 +147,7 @@ export function KinshipView({ people, pair, onChange, onSelect }: Props) {
                 className="rounded-md border border-(--c) px-3 py-2"
               >
                 <div className="text-xs text-muted-foreground">
-                  {t('calls', { a: first(x), b: first(y) })}
+                  {t('calls', { a: givenName(x), b: givenName(y) })}
                 </div>
                 <div className="text-lg">{term}</div>
               </div>

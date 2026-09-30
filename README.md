@@ -2,7 +2,7 @@
 
 A simple, friendly way to explore a family tree, understand kinship terms, and keep track of lunar memorial days.
 
-![Family tree with kinship comparison and person panel](docs/screenshot.png)
+![Family tree with kinship comparison and person panel](docs/ft.png)
 
 ## 💡 Why it’s useful
 
@@ -18,7 +18,7 @@ It helps families remember where they come from, how relatives address one anoth
 
 **📚 Directory and editing**
 
-- Search and filter relatives by gender, age, and status.
+- Search and filter relatives by generation level and gender, with birth dates in both solar and lunar calendars.
 - Suggest updates to a record and let an admin review them.
 - Switch between Vietnamese and English anytime.
 
@@ -30,7 +30,7 @@ It helps families remember where they come from, how relatives address one anoth
 **🤝 Kinship**
 
 - Compare any two people and see their relationship in both directions.
-- Support Northern Vietnamese terms of address and family references.
+- Support Northern and Southern Vietnamese terms of address, switchable in the kinship view (bố/mẹ or ba/má, cụ or ông cố, bác or cô/cậu/dì for a parent's older siblings).
 
 ## 🚀 Getting started
 

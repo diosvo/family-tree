@@ -1,8 +1,3 @@
-/**
- * Vietnamese lunar calendar (UTC+7), after Hồ Ngọc Đức's algorithm.
- * Memorial dates (ngày giỗ) are kept as lunar "MM-DD" and converted to the
- * solar calendar here.
- */
 import type { Lang } from './i18n';
 
 const TZ = 7;
@@ -186,13 +181,6 @@ export function lunarToSolar(day: number, month: number, year: number): Date {
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-/** Lunar memorial as stored: "MM-DD". */
-export const parseMemorial = (memorial: string) => {
-  const [month = 1, day = 1] = memorial.split('-').map(Number);
-
-  return { day, month };
-};
-
 /** Lunar day for display: "12-10" in Vietnamese, "12 Oct" in English. */
 export const lunarLabel = (day: number, month: number, lang: Lang) =>
   lang === 'vi'
@@ -202,15 +190,87 @@ export const lunarLabel = (day: number, month: number, lang: Lang) =>
         month: 'short',
       });
 
+/**
+ * Lunar day and month of the death anniversary (ngày giỗ), from a full solar
+ * date of death; undefined when only the year (or nothing) is known.
+ */
+export function memorialOf(deathDate: string | undefined) {
+  const date = deathDate ? parseDate(deathDate) : undefined;
+  if (!date) return undefined;
+
+  const { day, month } = solarToLunar(date);
+
+  return { day, month };
+}
+
 /** Solar day and month for display: "20-11" in Vietnamese, "20 Nov" in English. */
 export const solarLabel = (date: Date, lang: Lang) =>
   lang === 'vi'
     ? `${pad(date.getDate())}-${pad(date.getMonth() + 1)}`
     : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
-/** Next solar occurrence of a lunar memorial and how many days away it is. */
-export function nextMemorial(memorial: string, now: Date) {
-  const { day: d, month: m } = parseMemorial(memorial);
+export type Calendar = 'solar' | 'lunar';
+export const CALENDARS: Calendar[] = ['solar', 'lunar'];
+
+/** Numeric full date for display: "02/10/1925". */
+const dateLabel = (day: number, month: number, year: number) =>
+  `${pad(day)}/${pad(month)}/${year}`;
+
+/** Full solar date: "02/10/1925". */
+export const solarDateLabel = (date: Date) =>
+  dateLabel(date.getDate(), date.getMonth() + 1, date.getFullYear());
+
+const LEAP: Record<Lang, string> = { vi: 'nhuận', en: 'leap' };
+
+/** Full lunar date: "15/08/1925", leap months marked "(nhuận)" / "(leap)". */
+export const lunarDateLabel = (
+  { day, month, year, leap }: LunarDate,
+  lang: Lang,
+) => `${dateLabel(day, month, year)}${leap ? ` (${LEAP[lang]})` : ''}`;
+
+/**
+ * A solar date typed or stored as "YYYY-MM-DD", "DD-MM-YYYY" or "DD/MM/YYYY"
+ * as a local Date; undefined when malformed or not a real calendar day.
+ */
+export function parseDate(s: string): Date | undefined {
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s.trim());
+  const dmy = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(s.trim());
+
+  const parts = iso
+    ? [iso[1], iso[2], iso[3]]
+    : dmy
+      ? [dmy[3], dmy[2], dmy[1]]
+      : undefined;
+
+  if (!parts) return undefined;
+
+  const [y, mo, d] = parts.map(Number) as [number, number, number];
+  const date = new Date(y, mo - 1, d);
+
+  return date.getFullYear() === y &&
+    date.getMonth() === mo - 1 &&
+    date.getDate() === d
+    ? date
+    : undefined;
+}
+
+/** A Date as stored: "YYYY-MM-DD". */
+export const toISODate = (date: Date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+/**
+ * A typed date in stored form: a full date becomes "YYYY-MM-DD", a bare year
+ * stays "YYYY"; anything else is undefined.
+ */
+export function normalizeDate(s: string): string | undefined {
+  const full = parseDate(s);
+  if (full) return toISODate(full);
+
+  return /^\d{4}$/.test(s.trim()) ? s.trim() : undefined;
+}
+
+/** Next solar occurrence of a lunar day and how many days away it is. */
+export function nextMemorial(d: number, m: number, now: Date) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const y = now.getFullYear();
 

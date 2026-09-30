@@ -1,9 +1,8 @@
+import type { Suggestion } from '@/lib/family-store';
 import { useFamily } from '@/lib/family-store';
+import type { Key } from '@/lib/i18n';
 import { useT } from '@/lib/i18n';
 import { btn, btnPrimary } from '@/lib/utils';
-
-import type { Suggestion } from '@/lib/family-store';
-import type { Key } from '@/lib/i18n';
 
 /** Admin view: pending suggestions grouped by the person they concern. */
 export function SuggestionList({

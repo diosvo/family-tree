@@ -1,8 +1,6 @@
 export type LinkKind = 'github' | 'linkedin' | 'facebook';
-
 export type SiteLink = { kind: LinkKind; label: string; url: string };
 
-/** Who maintains this site; shown in the footer. Remove entries you don't want. */
 export const AUTHOR: { name: string; links: SiteLink[] } = {
   name: 'Dios Vo',
   links: [

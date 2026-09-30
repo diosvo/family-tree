@@ -1,10 +1,13 @@
 import { X } from 'lucide-react';
 
+import type { Person } from '@/lib/family-data';
+import { givenName } from '@/lib/family-data';
+import { useFamily } from '@/lib/family-store';
 import { useT } from '@/lib/i18n';
-import { kinship } from '@/lib/kinship';
+import { kinLabel, kinship } from '@/lib/kinship';
 import { btn, btnPrimary } from '@/lib/utils';
 
-import type { Person } from '@/lib/family-data';
+import { RegionSwitch } from './RegionSwitch';
 
 type Props = {
   people: Person[];
@@ -23,9 +26,9 @@ export function CompareBar({
   onDetails,
 }: Props) {
   const { t, lang } = useT();
+  const { region } = useFamily();
   const [a, b] = pair.map((id) => people.find((p) => p.id === id));
-  const kin = a && b ? kinship(people, a.id, b.id) : null;
-  const first = (p: Person) => p.name.split(' ').pop() ?? p.name;
+  const kin = a && b ? kinship(people, a.id, b.id, region) : null;
 
   const slot = (n: number, p?: Person) => (
     <span className="flex items-center gap-1.5">
@@ -57,16 +60,16 @@ export function CompareBar({
         <div className="space-y-1 border-t pt-2">
           <p>
             {t('isOf', {
-              a: first(a),
-              b: first(b),
-              rel: lang === 'vi' ? kin.vi : `${kin.en} (${kin.vi})`,
+              a: givenName(a),
+              b: givenName(b),
+              rel: kinLabel(kin, lang),
             })}
           </p>
           <p className="text-xs text-muted-foreground">
-            {first(a)} → {first(b)}:{' '}
+            {givenName(a)} → {givenName(b)}:{' '}
             <b className="font-medium text-foreground">{kin.aCalls}</b>
             {' · '}
-            {first(b)} → {first(a)}:{' '}
+            {givenName(b)} → {givenName(a)}:{' '}
             <b className="font-medium text-foreground">{kin.bCalls}</b>
           </p>
         </div>
@@ -83,6 +86,7 @@ export function CompareBar({
           <button onClick={onClear} className={btn}>
             {t('clear')}
           </button>
+          <RegionSwitch className="ml-auto" />
         </div>
       )}
     </div>

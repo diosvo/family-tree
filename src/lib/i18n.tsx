@@ -1,8 +1,15 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from 'react';
 
-import type { ReactNode } from 'react';
+import { oneOf, useStoredState } from './use-stored-state';
 
 export type Lang = 'vi' | 'en';
+export const LANGS: Lang[] = ['vi', 'en'];
 
 const en = {
   title: 'Family Tree',
@@ -24,7 +31,10 @@ const en = {
   calls: '{a} calls {b}',
   relationPath: 'Path',
   noRelation: 'No family relationship found between these two people.',
-  regionNote: 'Northern terms are used here; other regions may vary.',
+  regionNote: 'Terms of address vary between families and regions.',
+  region: 'Terms',
+  north: 'Northern',
+  south: 'Southern',
   add: 'Add',
   admin: 'Admin',
   adminPasscode: 'Admin passcode',
@@ -50,6 +60,8 @@ const en = {
   deceased: 'Deceased',
   lunar: 'Lunar',
   solar: 'Solar',
+  allLevels: 'All levels',
+  level: 'Level {n}',
   todayLunar: 'Today is {d} in the lunar calendar',
   memorialShort: 'Memorial {d} (lunar)',
   upcoming: 'Upcoming death anniversaries (ngày giỗ)',
@@ -65,9 +77,8 @@ const en = {
   removed: 'Removed',
   addPerson: 'Add person',
   fullName: 'Full name *',
-  birthYear: 'Birth year',
-  deathYear: 'Death year',
-  memorialDate: 'Memorial date, lunar MM-DD',
+  birthDate: 'Born, solar (DD/MM/YYYY or YYYY)',
+  deathDate: 'Died, solar (DD/MM/YYYY or YYYY)',
   father: 'Father',
   mother: 'Mother',
   none: '—',
@@ -94,8 +105,8 @@ const en = {
   confirmRemove: 'Remove {name}?',
   field_name: 'Name',
   field_courtesyName: 'Courtesy name',
-  field_birthYear: 'Birth year',
-  field_memorial: 'Memorial, lunar (MM-DD)',
+  field_birthDate: 'Date of birth, solar (DD/MM/YYYY or YYYY)',
+  field_deathDate: 'Date of death, solar (DD/MM/YYYY or YYYY)',
   field_other: 'Other note',
 };
 
@@ -119,7 +130,10 @@ const vi: Record<Key, string> = {
   calls: '{a} gọi {b} là',
   relationPath: 'Đường quan hệ',
   noRelation: 'Không tìm thấy quan hệ họ hàng giữa hai người này.',
-  regionNote: 'Tại đây dùng cách gọi miền Bắc; các miền khác có thể khác.',
+  regionNote: 'Cách xưng hô có thể khác nhau giữa các gia đình và vùng miền.',
+  region: 'Cách gọi',
+  north: 'Miền Bắc',
+  south: 'Miền Nam',
   add: 'Thêm',
   admin: 'Quản trị',
   adminPasscode: 'Mã quản trị',
@@ -145,6 +159,8 @@ const vi: Record<Key, string> = {
   deceased: 'Đã mất',
   lunar: 'Âm lịch',
   solar: 'Dương lịch',
+  allLevels: 'Tất cả các đời',
+  level: 'Đời {n}',
   todayLunar: 'Hôm nay là {d} âm lịch',
   memorialShort: 'Giỗ {d} ÂL',
   upcoming: 'Ngày giỗ sắp tới',
@@ -160,9 +176,8 @@ const vi: Record<Key, string> = {
   removed: 'Đã xoá',
   addPerson: 'Thêm người',
   fullName: 'Họ và tên *',
-  birthYear: 'Năm sinh',
-  deathYear: 'Năm mất',
-  memorialDate: 'Ngày giỗ âm lịch (ngày/tháng)',
+  birthDate: 'Ngày sinh DL (ngày/tháng/năm hoặc năm)',
+  deathDate: 'Ngày mất DL (ngày/tháng/năm hoặc năm)',
   father: 'Cha',
   mother: 'Mẹ',
   none: '—',
@@ -189,8 +204,8 @@ const vi: Record<Key, string> = {
   confirmRemove: 'Xoá {name}?',
   field_name: 'Họ tên',
   field_courtesyName: 'Tự',
-  field_birthYear: 'Năm sinh',
-  field_memorial: 'Ngày giỗ âm lịch (ngày/tháng)',
+  field_birthDate: 'Ngày sinh dương lịch (ngày/tháng/năm hoặc năm)',
+  field_deathDate: 'Ngày mất dương lịch (ngày/tháng/năm hoặc năm)',
   field_other: 'Ghi chú khác',
 };
 
@@ -205,14 +220,10 @@ type Ctx = {
   t: (k: Key, vars?: Vars) => string;
 };
 const LangCtx = createContext<Ctx | null>(null);
+const langCodec = oneOf(LANGS);
 
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>('vi');
-
-  useEffect(() => {
-    const saved = localStorage.getItem('ft-lang');
-    if (saved === 'en' || saved === 'vi') setLangState(saved);
-  }, []);
+  const [lang, setLang] = useStoredState<Lang>('ft-lang', 'vi', langCodec);
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -221,17 +232,14 @@ export function LangProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Ctx>(
     () => ({
       lang,
-      setLang: (l) => {
-        setLangState(l);
-        localStorage.setItem('ft-lang', l);
-      },
+      setLang,
       t: (k, vars) =>
         Object.entries(vars ?? {}).reduce(
           (s, [a, b]) => s.replace(`{${a}}`, String(b)),
           dict[lang][k],
         ),
     }),
-    [lang],
+    [lang, setLang],
   );
 
   return <LangCtx.Provider value={value}>{children}</LangCtx.Provider>;

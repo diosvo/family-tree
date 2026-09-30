@@ -15,8 +15,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { courtesyNameText, genderVars, lifespan } from '@/lib/family-data';
+import {
+  birthYear,
+  courtesyNameText,
+  genderVars,
+  indexById,
+  isDeceased,
+  lifespan,
+} from '@/lib/family-data';
 import { useT } from '@/lib/i18n';
+
+import { DeceasedMark } from './PersonParts';
 
 import type { Person } from '@/lib/family-data';
 import type { Edge, Node, NodeProps } from '@xyflow/react';
@@ -27,6 +36,15 @@ const GAP_SPOUSE = 16;
 const GAP_UNIT = 40;
 const GAP_ROW = 72;
 const MOBILE = 768;
+
+/** Invisible edge anchor: children hang from the bottom, parents from the top. */
+const HiddenHandle = ({ type }: { type: 'source' | 'target' }) => (
+  <Handle
+    type={type}
+    position={type === 'target' ? Position.Top : Position.Bottom}
+    className="!pointer-events-none !opacity-0"
+  />
+);
 
 type PData = {
   person: Person;
@@ -45,11 +63,7 @@ function PersonNode({ data }: NodeProps<Node<PData>>) {
   // correctly without offsetting the edges.
   return (
     <div className="relative" style={{ width: W }}>
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="!pointer-events-none !opacity-0"
-      />
+      <HiddenHandle type="target" />
       <div
         data-selected={selected}
         className="relative node-in rounded-lg border border-(--c) bg-card px-3 py-2 shadow-sm transition-colors hover:bg-(--c-soft) data-[selected=true]:bg-(--c) data-[selected=true]:text-white data-[selected=true]:hover:bg-(--c)"
@@ -60,13 +74,8 @@ function PersonNode({ data }: NodeProps<Node<PData>>) {
             {mark}
           </span>
         )}
-        {p.deathYear && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="absolute top-1.5 right-1.5 h-2.5 w-4 rounded-[2px] bg-black" />
-            </TooltipTrigger>
-            <TooltipContent>{t('deceased')}</TooltipContent>
-          </Tooltip>
+        {isDeceased(p) && (
+          <DeceasedMark className="absolute top-1.5 right-1.5" />
         )}
         <div className="truncate pr-4 text-sm font-medium">{p.name}</div>
         <div className="truncate text-xs opacity-75">
@@ -95,11 +104,7 @@ function PersonNode({ data }: NodeProps<Node<PData>>) {
           </Tooltip>
         )}
       </div>
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!pointer-events-none !opacity-0"
-      />
+      <HiddenHandle type="source" />
     </div>
   );
 }
@@ -107,16 +112,8 @@ function PersonNode({ data }: NodeProps<Node<PData>>) {
 function UnionNode() {
   return (
     <div className="h-2 w-2 rounded-full bg-muted-foreground">
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="!pointer-events-none !opacity-0"
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!pointer-events-none !opacity-0"
-      />
+      <HiddenHandle type="target" />
+      <HiddenHandle type="source" />
     </div>
   );
 }
@@ -146,7 +143,7 @@ const unitWidth = (u: Unit) =>
  * member's own parents, when they are elsewhere, are linked with a dashed edge.
  */
 function layout(people: Person[]) {
-  const byId = new Map(people.map((p) => [p.id, p]));
+  const byId = indexById(people);
 
   const parentOf = (p: Person) =>
     [p.fatherId, p.motherId].find((id) => id && byId.has(id));
@@ -224,7 +221,7 @@ function layout(people: Person[]) {
   });
 
   const byBirth = (a: Unit, b: Unit) =>
-    (a.anchor.birthYear ?? 9999) - (b.anchor.birthYear ?? 9999);
+    (birthYear(a.anchor) ?? 9999) - (birthYear(b.anchor) ?? 9999);
 
   const seen = new Set<string>();
 
@@ -341,7 +338,7 @@ function Inner({
     rootCenterX,
   } = useMemo(() => layout(people), [people]);
 
-  const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
+  const byId = useMemo(() => indexById(people), [people]);
 
   const nodes = useMemo(
     () =>
@@ -381,9 +378,7 @@ function Inner({
     [baseEdges, selectedId],
   );
 
-  // Whenever the visible set changes: frame the focused family if there is
-  // one; otherwise fit everything on desktop, and on a phone keep cards
-  // readable and start from the root at the top.
+  // Frame the focused family or fit the tree; mobile keeps the root readable.
   useEffect(() => {
     if (!ready) return;
 
@@ -427,8 +422,7 @@ function Inner({
     return () => clearTimeout(t);
   }, [ready, selectedId, rf]);
 
-  // Absolute so the canvas always has a measurable size, even when the parent
-  // is a flex item whose height is not definite yet.
+  // Absolute so the canvas always has a measurable size, even in flex layouts.
   return (
     <div ref={box} className="absolute inset-0">
       <ReactFlow

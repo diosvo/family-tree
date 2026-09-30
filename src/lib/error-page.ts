@@ -28,3 +28,10 @@ export function renderErrorPage(): string {
   </body>
 </html>`;
 }
+
+/** The fallback page as a 500 response. */
+export const errorPageResponse = () =>
+  new Response(renderErrorPage(), {
+    status: 500,
+    headers: { 'content-type': 'text/html; charset=utf-8' },
+  });

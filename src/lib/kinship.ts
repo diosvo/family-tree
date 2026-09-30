@@ -1,4 +1,14 @@
+import { birthYear, indexById } from './family-data';
+
 import type { Person } from './family-data';
+import type { Lang } from './i18n';
+
+/**
+ * Regional terms of address. North and South share the same system but differ
+ * in a few kinship words and naming conventions.
+ */
+export type Region = 'north' | 'south';
+export const REGIONS: Region[] = ['north', 'south'];
 
 /** Relationship of B to A, with Vietnamese terms of address. */
 export type Kin = {
@@ -13,16 +23,25 @@ type Ctx = {
   byId: Map<string, Person>;
   /** True when x is older than y (birth year, else data order). */
   older: (x: Person, y: Person) => boolean;
+  region: Region;
 };
 
 const male = (p: Person) => p.gender === 'male';
-const parentTerm = (p: Person) => (male(p) ? 'bố / ba' : 'mẹ / má');
+const north = (r: Region) => r === 'north';
+
+const parentTerm = (r: Region, p: Person) =>
+  male(p) ? (north(r) ? 'bố' : 'ba') : north(r) ? 'mẹ' : 'má';
 
 const grandTerm = (p: Person, side: 'nội' | 'ngoại') =>
   `${male(p) ? 'ông' : 'bà'} ${side}`;
 
-const greatTerm = (gen: number) =>
-  gen === 3 ? 'cụ (ông/bà cố)' : gen === 4 ? 'kị (ông/bà sơ)' : 'tổ tiên';
+/** Great-grandparent (gen 3) and great-great-grandparent (gen 4). */
+const greatTerm = (r: Region, p: Person, gen: number) => {
+  if (gen > 4) return 'tổ tiên';
+  if (north(r)) return gen === 3 ? 'cụ' : 'kị';
+
+  return `${male(p) ? 'ông' : 'bà'} ${gen === 3 ? 'cố' : 'sơ'}`;
+};
 
 const descTerm = (gen: number) =>
   ['', 'con', 'cháu', 'chắt', 'chút', 'chít'][gen] ?? 'cháu';
@@ -40,39 +59,42 @@ const sibLabel = (p: Person, elder: boolean): [string, string] =>
       ? ['em trai', 'younger brother']
       : ['em gái', 'younger sister'];
 
-/**
- * Term for an uncle/aunt-level relative `u` of someone whose linking parent is
- * `viaParent` (the child of the shared ancestor on the junior side).
- * `senior` says whether u's branch is older than that parent's.
- */
 function uncleTerm(
+  r: Region,
   u: Person,
   viaParent: Person,
   senior: boolean,
 ): [string, string] {
-  const paternal = male(viaParent);
-  if (paternal)
-    return male(u)
-      ? senior
+  if (male(viaParent)) {
+    if (male(u))
+      return senior
         ? ['bác', "father's older brother"]
-        : ['chú', "father's younger brother"]
+        : ['chú', "father's younger brother"];
+
+    // North: father's older sister is bác. South: cô regardless of age.
+    return senior && north(r)
+      ? ['bác', "father's older sister"]
       : ['cô', "father's sister"];
+  }
+
+  // North: mother's older siblings are bác. South: cậu / dì regardless of age.
+  if (senior && north(r))
+    return [
+      'bác',
+      male(u) ? "mother's older brother" : "mother's older sister",
+    ];
 
   return male(u) ? ['cậu', "mother's brother"] : ['dì', "mother's sister"];
 }
 
-/**
- * Terms for an elder relative `b` who is `gensAbove` generations above someone
- * and is (like) a sibling of that person's ancestor `sib`.
- * Returns [label vi, label en, how the junior calls b, how b calls the junior].
- */
 function elderTerms(
+  r: Region,
   b: Person,
   sib: Person,
   senior: boolean,
   gensAbove: number,
 ): [string, string, string, string] {
-  const [term, en] = uncleTerm(b, sib, senior);
+  const [term, en] = uncleTerm(r, b, sib, senior);
   if (gensAbove === 1) return [term, en, term, 'cháu'];
 
   if (gensAbove === 2) {
@@ -86,7 +108,9 @@ function elderTerms(
     ];
   }
 
-  return ['cụ', `great-great-${male(b) ? 'uncle' : 'aunt'}`, 'cụ', 'chắt'];
+  const great = greatTerm(r, b, 3);
+
+  return [great, `great-great-${male(b) ? 'uncle' : 'aunt'}`, great, 'chắt'];
 }
 
 /** All ancestors of p: id → chain of people from p's parent up to that ancestor. */
@@ -141,7 +165,7 @@ function bloodKin(ctx: Ctx, a: Person, b: Person): Kin | null {
     (p, i, arr) => p !== arr[i - 1],
   );
 
-  const { older } = ctx;
+  const { older, region: r } = ctx;
 
   // B descends from A.
   if (ga === 0) {
@@ -149,7 +173,7 @@ function bloodKin(ctx: Ctx, a: Person, b: Person): Kin | null {
       return kin(
         male(b) ? ['con trai', 'son'] : ['con gái', 'daughter'],
         'con',
-        parentTerm(a),
+        parentTerm(r, a),
         path,
       );
     const side = male(chainB[gb - 2]) ? 'nội' : 'ngoại';
@@ -167,7 +191,7 @@ function bloodKin(ctx: Ctx, a: Person, b: Person): Kin | null {
     return kin(
       [descTerm(gb), gb === 3 ? 'great-grandchild' : 'great-great-grandchild'],
       descTerm(gb),
-      greatTerm(gb),
+      greatTerm(r, a, gb),
       path,
     );
   }
@@ -176,8 +200,8 @@ function bloodKin(ctx: Ctx, a: Person, b: Person): Kin | null {
   if (gb === 0) {
     if (ga === 1)
       return kin(
-        male(b) ? ['bố / ba', 'father'] : ['mẹ / má', 'mother'],
-        parentTerm(b),
+        [parentTerm(r, b), male(b) ? 'father' : 'mother'],
+        parentTerm(r, b),
         'con',
         path,
       );
@@ -195,10 +219,10 @@ function bloodKin(ctx: Ctx, a: Person, b: Person): Kin | null {
 
     return kin(
       [
-        greatTerm(ga),
+        greatTerm(r, b, ga),
         ga === 3 ? 'great-grandparent' : 'great-great-grandparent',
       ],
-      greatTerm(ga),
+      greatTerm(r, b, ga),
       descTerm(ga),
       path,
     );
@@ -227,7 +251,14 @@ function bloodKin(ctx: Ctx, a: Person, b: Person): Kin | null {
   // B is a sibling of A's ancestor: uncle / aunt level.
   if (gb === 1) {
     const sib = chainA[ga - 2]; // A's ancestor who is B's sibling
-    const [vi, en, aCalls, bCalls] = elderTerms(b, sib, older(b, sib), ga - 1);
+
+    const [vi, en, aCalls, bCalls] = elderTerms(
+      r,
+      b,
+      sib,
+      older(b, sib),
+      ga - 1,
+    );
 
     return kin([vi, en], aCalls, bCalls, path);
   }
@@ -235,7 +266,7 @@ function bloodKin(ctx: Ctx, a: Person, b: Person): Kin | null {
   // B descends from A's sibling: nephew / niece level.
   if (ga === 1) {
     const sib = chainB[gb - 2]; // B's ancestor who is A's sibling
-    const [, , bCalls, aCalls] = elderTerms(a, sib, older(a, sib), gb - 1);
+    const [, , bCalls, aCalls] = elderTerms(r, a, sib, older(a, sib), gb - 1);
 
     return kin(
       gb === 2
@@ -272,14 +303,21 @@ function bloodKin(ctx: Ctx, a: Person, b: Person): Kin | null {
   if (gb < ga) {
     // B belongs to an older generation: (like) a sibling of A's ancestor.
     const d = ga - gb;
-    const [vi, en, aCalls, bCalls] = elderTerms(b, chainA[d - 1], seniorB, d);
+
+    const [vi, en, aCalls, bCalls] = elderTerms(
+      r,
+      b,
+      chainA[d - 1],
+      seniorB,
+      d,
+    );
 
     return kin([`${vi} (họ)`, `${en} (distant)`], aCalls, bCalls, path);
   }
 
   // B belongs to a younger generation.
   const d = gb - ga;
-  const [, , bCalls, aCalls] = elderTerms(a, chainB[d - 1], !seniorB, d);
+  const [, , bCalls, aCalls] = elderTerms(r, a, chainB[d - 1], !seniorB, d);
 
   return kin(['cháu (họ)', 'distant nephew / niece'], aCalls, bCalls, path);
 }
@@ -292,16 +330,35 @@ const spouseKin = (a: Person, b: Person): Kin =>
     [a, b],
   );
 
+const PARENT_WORDS = ['bố', 'mẹ', 'ba', 'má'];
+
 /** B is the spouse of X, where X is A's blood relative described by k. */
-function inLawBySpouse(k: Kin, a: Person, b: Person): Kin {
+function inLawBySpouse(r: Region, k: Kin, a: Person, b: Person): Kin {
   const base = k.aCalls.split(/[\s/(]/)[0] ?? '';
   const en = `${k.en}'s ${male(b) ? 'husband' : 'wife'}`;
   const path = [...k.path, b];
   const suffix = `${male(b) ? 'rể' : 'dâu'}${k.vi.includes('họ') ? ' (họ)' : ''}`;
 
+  if (PARENT_WORDS.includes(base))
+    return kin(
+      male(b)
+        ? [`${parentTerm(r, b)} dượng`, 'stepfather']
+        : ['mẹ kế', 'stepmother'],
+      male(b) ? 'dượng' : 'dì',
+      'con',
+      path,
+    );
+
+  if (base === 'cô' || base === 'dì') {
+    // North: an aunt's husband is chú. South: dượng.
+    const t = north(r) ? 'chú' : 'dượng';
+
+    return kin([t, en], t, 'cháu', path);
+  }
+
   switch (base) {
     case 'con':
-      return kin([`con ${suffix}`, en], 'con', parentTerm(a), path);
+      return kin([`con ${suffix}`, en], 'con', parentTerm(r, a), path);
     case 'cháu':
     case 'chắt':
     case 'chút':
@@ -313,22 +370,11 @@ function inLawBySpouse(k: Kin, a: Person, b: Person): Kin {
     case 'em':
       return kin([`em ${suffix}`, en], 'em', k.bCalls, path);
     case 'bác':
-      return kin(['bác gái', en], 'bác', 'cháu', path);
+      return kin([male(b) ? 'bác' : 'bác gái', en], 'bác', 'cháu', path);
     case 'chú':
       return kin(['thím', en], 'thím', 'cháu', path);
     case 'cậu':
       return kin(['mợ', en], 'mợ', 'cháu', path);
-    case 'cô':
-    case 'dì':
-      return kin(['dượng', en], 'dượng', 'cháu', path);
-    case 'bố':
-    case 'mẹ':
-      return kin(
-        male(b) ? ['bố dượng', 'stepfather'] : ['mẹ kế', 'stepmother'],
-        male(b) ? 'dượng' : 'dì',
-        'con',
-        path,
-      );
 
     default: {
       const t = male(b) ? 'ông' : 'bà';
@@ -344,7 +390,7 @@ function inLawViaSpouse(k: Kin, a: Person, b: Person): Kin {
   const sideEn = male(a) ? "wife's" : "husband's";
   const base = k.vi.split(/[\s/(]/)[0] ?? '';
   const path = [a, ...k.path];
-  if (base === 'bố' || base === 'mẹ')
+  if (PARENT_WORDS.includes(base))
     return kin(
       [`${base} ${side}`, male(b) ? 'father-in-law' : 'mother-in-law'],
       k.aCalls,
@@ -378,8 +424,9 @@ export function kinship(
   people: Person[],
   aId: string,
   bId: string,
+  region: Region = 'north',
 ): Kin | null {
-  const byId = new Map(people.map((p) => [p.id, p]));
+  const byId = indexById(people);
   const order = new Map(people.map((p, i) => [p.id, i]));
   const a = byId.get(aId);
   const b = byId.get(bId);
@@ -388,12 +435,15 @@ export function kinship(
 
   const ctx: Ctx = {
     byId,
-    older: (x, y) =>
-      x.birthYear !== undefined &&
-      y.birthYear !== undefined &&
-      x.birthYear !== y.birthYear
-        ? x.birthYear < y.birthYear
-        : (order.get(x.id) ?? 0) < (order.get(y.id) ?? 0),
+    region,
+    older: (x, y) => {
+      const bx = birthYear(x);
+      const by = birthYear(y);
+
+      return bx !== undefined && by !== undefined && bx !== by
+        ? bx < by
+        : (order.get(x.id) ?? 0) < (order.get(y.id) ?? 0);
+    },
   };
 
   const blood = bloodKin(ctx, a, b);
@@ -403,7 +453,7 @@ export function kinship(
   for (const xId of b.spouseIds) {
     const x = byId.get(xId);
     const k = x && bloodKin(ctx, a, x);
-    if (k) return inLawBySpouse(k, a, b);
+    if (k) return inLawBySpouse(region, k, a, b);
   }
 
   for (const sId of a.spouseIds) {
@@ -436,3 +486,7 @@ export function kinship(
 
   return null;
 }
+
+/** Relationship label in the UI language; English keeps the Vietnamese term. */
+export const kinLabel = (k: Kin, lang: Lang) =>
+  lang === 'vi' ? k.vi : `${k.en} (${k.vi})`;

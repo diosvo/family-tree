@@ -14,8 +14,10 @@ import TreeView from '@/components/family/TreeView';
 import { Footer } from '@/components/Footer';
 import { Segmented } from '@/components/ui/segmented';
 import {
+  birthYear,
   childrenOf,
   familyAround,
+  generationLevels,
   houseOf,
   mainRootId,
   matches,
@@ -24,10 +26,8 @@ import {
   surname,
 } from '@/lib/family-data';
 import { FamilyProvider, useFamily } from '@/lib/family-store';
-import { LangProvider, useT } from '@/lib/i18n';
+import { LANGS, LangProvider, useT } from '@/lib/i18n';
 import { btn, btnPrimary } from '@/lib/utils';
-
-import type { Lang } from '@/lib/i18n';
 
 export const Route = createFileRoute('/')({
   head: () => ({
@@ -58,7 +58,6 @@ type Tab = 'tree' | 'library' | 'memorials' | 'kinship' | 'suggestions';
 type Scope = 'main' | 'all' | 'custom';
 /** Generations of the main house shown on first load. */
 const MAIN_DEPTH = 4;
-const LANGS: Lang[] = ['vi', 'en'];
 
 function App() {
   const { people, byId, suggestions, isAdmin, login, logout } = useFamily();
@@ -85,6 +84,8 @@ function App() {
       ? houseOf(people, root, MAIN_DEPTH)
       : new Set(people.map((p) => p.id));
   }, [people]);
+
+  const levels = useMemo(() => generationLevels(people), [people]);
 
   const shown = visible ?? mainIds;
 
@@ -230,7 +231,7 @@ function App() {
                   className="block w-full border-b px-3 py-2 text-left text-sm last:border-b-0 hover:bg-accent"
                 >
                   {p.name}{' '}
-                  <span className="text-muted-foreground">{p.birthYear}</span>
+                  <span className="text-muted-foreground">{birthYear(p)}</span>
                 </button>
               ))}
               {!results.length && (
@@ -321,7 +322,12 @@ function App() {
           </>
         )}
         {tab === 'library' && (
-          <Library people={results} now={now} onSelect={select} />
+          <Library
+            people={results}
+            levels={levels}
+            now={now}
+            onSelect={select}
+          />
         )}
         {tab === 'memorials' && (
           <MemorialList people={people} now={now} onSelect={select} />

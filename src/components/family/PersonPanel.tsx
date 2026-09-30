@@ -4,21 +4,18 @@ import { ArrowLeftRight, ChevronDown, ChevronUp, X } from 'lucide-react';
 
 import { SelectField } from '@/components/ui/select-field';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
   childrenOf,
-  courtesyNameText,
   genderVars,
+  isDeceased,
   lifespan,
   siblingsOf,
 } from '@/lib/family-data';
 import { useFamily } from '@/lib/family-store';
 import { useT } from '@/lib/i18n';
-import { lunarLabel, parseMemorial } from '@/lib/lunar';
+import { lunarLabel, memorialOf } from '@/lib/lunar';
 import { btn, btnPrimary, cn, input } from '@/lib/utils';
+
+import { CourtesyName, DeceasedMark } from './PersonParts';
 
 import type { Person } from '@/lib/family-data';
 import type { Suggestion } from '@/lib/family-store';
@@ -27,8 +24,8 @@ import type { Key } from '@/lib/i18n';
 const FIELDS: Array<Suggestion['field']> = [
   'name',
   'courtesyName',
-  'birthYear',
-  'memorial',
+  'birthDate',
+  'deathDate',
   'other',
 ];
 
@@ -36,11 +33,7 @@ function RelList({
   label,
   people,
   onSelect,
-}: {
-  label: string;
-  people: Person[];
-  onSelect: (id: string) => void;
-}) {
+}: { label: string; people: Person[] } & Pick<Props, 'onSelect'>) {
   if (!people.length) return null;
 
   return (
@@ -91,15 +84,18 @@ export function PersonPanel({
   const get = (ids: Array<string | undefined>) =>
     ids.flatMap((id) => (id && byId.get(id)) || []);
 
-  const spouse = person.spouseIds[0];
-
-  const memorialText = (m: string) => {
-    const { day, month } = parseMemorial(m);
-
-    return lunarLabel(day, month, lang);
-  };
+  /** Other houses reachable from this person, shown as buttons in this order. */
+  const houses = [
+    [person.fatherId, 'fathersFamily'],
+    [person.motherId, 'mothersFamily'],
+    [
+      person.spouseIds[0],
+      person.gender === 'male' ? 'wifesFamily' : 'husbandsFamily',
+    ],
+  ] as const;
 
   const Toggle = expanded ? ChevronDown : ChevronUp;
+  const memorial = memorialOf(person.deathDate);
 
   return (
     <div className="space-y-3 p-4 md:space-y-4">
@@ -108,25 +104,16 @@ export function PersonPanel({
           <h2 className="flex items-center gap-2 text-lg font-medium">
             <span className="truncate">
               {person.name}{' '}
-              {person.courtesyName && (
-                <span className="font-normal text-muted-foreground">
-                  {courtesyNameText(person)}
-                </span>
-              )}
+              <CourtesyName person={person} className="font-normal" />
             </span>
-            {person.deathYear && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-block h-2.5 w-4 shrink-0 rounded-[2px] bg-black" />
-                </TooltipTrigger>
-                <TooltipContent>{t('deceased')}</TooltipContent>
-              </Tooltip>
+            {isDeceased(person) && (
+              <DeceasedMark className="inline-block shrink-0" />
             )}
           </h2>
           <p className="text-sm text-muted-foreground">
             {t(person.gender)} · {lifespan(person)}
-            {person.memorial
-              ? ` · ${t('memorialShort', { d: memorialText(person.memorial) })}`
+            {memorial
+              ? ` · ${t('memorialShort', { d: lunarLabel(memorial.day, memorial.month, lang) })}`
               : ''}
           </p>
         </div>
@@ -152,20 +139,13 @@ export function PersonPanel({
         <button onClick={() => onHouse(person.id)} className={btnPrimary}>
           {t('focusFamily')}
         </button>
-        {person.fatherId && (
-          <button onClick={() => onHouse(person.fatherId!)} className={btn}>
-            {t('fathersFamily')}
-          </button>
-        )}
-        {person.motherId && (
-          <button onClick={() => onHouse(person.motherId!)} className={btn}>
-            {t('mothersFamily')}
-          </button>
-        )}
-        {spouse && (
-          <button onClick={() => onHouse(spouse)} className={btn}>
-            {t(person.gender === 'male' ? 'wifesFamily' : 'husbandsFamily')}
-          </button>
+        {houses.map(
+          ([id, label]) =>
+            id && (
+              <button key={label} onClick={() => onHouse(id)} className={btn}>
+                {t(label)}
+              </button>
+            ),
         )}
         <button
           onClick={() => onCompare(person.id)}
