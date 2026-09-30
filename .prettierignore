@@ -1,0 +1,15 @@
+# Lockfiles
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Generated / build output
+src/routeTree.gen.ts
+.output
+.nitro
+.tanstack
+.vinxi
+.wrangler
+dist
+dist-ssr
+node_modules
