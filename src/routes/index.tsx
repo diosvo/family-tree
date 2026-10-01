@@ -28,6 +28,7 @@ import {
 import { FamilyProvider, useFamily } from '@/lib/family-store';
 import { LANGS, LangProvider, useT } from '@/lib/i18n';
 import { btn, btnPrimary } from '@/lib/utils';
+import { loadFamily } from '@/server/family';
 
 export const Route = createFileRoute('/')({
   head: () => ({
@@ -45,14 +46,21 @@ export const Route = createFileRoute('/')({
       },
     ],
   }),
-  component: () => (
+  loader: () => loadFamily(),
+  component: RouteComponent,
+});
+
+function RouteComponent() {
+  const data = Route.useLoaderData();
+
+  return (
     <LangProvider>
-      <FamilyProvider>
+      <FamilyProvider data={data}>
         <App />
       </FamilyProvider>
     </LangProvider>
-  ),
-});
+  );
+}
 
 type Tab = 'tree' | 'library' | 'memorials' | 'kinship' | 'suggestions';
 type Scope = 'main' | 'all' | 'custom';
@@ -192,12 +200,18 @@ function App() {
               onClick={() => {
                 if (isAdmin) {
                   if (tab === 'suggestions') setTab('tree');
+                  void logout();
 
-                  return logout();
+                  return;
                 }
 
                 const c = prompt(t('adminPasscode'));
-                if (c && !login(c)) alert(t('wrongPasscode'));
+
+                if (c) {
+                  void login(c).then((ok) => {
+                    if (!ok) alert(t('wrongPasscode'));
+                  });
+                }
               }}
               className={`${btn} flex items-center gap-1`}
             >

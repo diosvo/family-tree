@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-start';
 
 import { errorPageResponse } from './lib/error-page';
+import { httpStatus } from './server/middleware';
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -27,4 +28,5 @@ const csrfMiddleware = createCsrfMiddleware({
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [errorMiddleware, csrfMiddleware],
+  functionMiddleware: [httpStatus],
 }));

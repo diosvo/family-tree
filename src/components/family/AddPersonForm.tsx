@@ -55,7 +55,7 @@ export function AddPersonForm({ onDone }: { onDone: () => void }) {
         e.preventDefault();
         if (!f.name.trim()) return;
 
-        addPerson({
+        void addPerson({
           name: f.name.trim(),
           courtesyName: f.courtesyName || undefined,
           gender: f.gender,

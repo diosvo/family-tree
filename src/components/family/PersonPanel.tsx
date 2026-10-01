@@ -77,7 +77,11 @@ export function PersonPanel({
   const [field, setField] = useState<Suggestion['field']>('courtesyName');
   const [value, setValue] = useState('');
   const [author, setAuthor] = useState('');
-  const [sent, setSent] = useState(false);
+
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>(
+    'idle',
+  );
+
   /** On phones the panel starts collapsed to the header and family buttons. */
   const [expanded, setExpanded] = useState(false);
 
@@ -181,19 +185,25 @@ export function PersonPanel({
 
         <form
           className="space-y-2 rounded-lg border p-3"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            if (!value.trim()) return;
+            if (!value.trim() || status === 'sending') return;
+            setStatus('sending');
 
-            addSuggestion({
-              personId: person.id,
-              field,
-              value: value.trim(),
-              author: author.trim() || 'Anonymous',
-            });
+            try {
+              await addSuggestion({
+                personId: person.id,
+                field,
+                value: value.trim(),
+                author: author.trim() || 'Anonymous',
+              });
 
-            setValue('');
-            setSent(true);
+              setValue('');
+              setStatus('sent');
+            } catch {
+              // Keep the text so the visitor can retry.
+              setStatus('failed');
+            }
           }}
         >
           <div className="text-sm">{t('suggest')}</div>
@@ -211,7 +221,7 @@ export function PersonPanel({
               value={value}
               onChange={(e) => {
                 setValue(e.target.value);
-                setSent(false);
+                setStatus('idle');
               }}
               placeholder={t('newInfo')}
               className={`${input} min-w-0 flex-1`}
@@ -223,8 +233,20 @@ export function PersonPanel({
             placeholder={t('yourName')}
             className={input}
           />
-          <button className={`${btn} w-full py-2 text-sm`}>
-            {sent ? t('sent') : t('send')}
+          {status === 'failed' && (
+            <p role="alert" className="text-sm text-destructive">
+              {t('sendFailed')}
+            </p>
+          )}
+          <button
+            disabled={status === 'sending'}
+            className={`${btn} w-full py-2 text-sm`}
+          >
+            {status === 'sending'
+              ? t('sending')
+              : status === 'sent'
+                ? t('sent')
+                : t('send')}
           </button>
         </form>
 
@@ -232,7 +254,7 @@ export function PersonPanel({
           <button
             onClick={() => {
               if (confirm(t('confirmRemove', { name: person.name }))) {
-                removePerson(person.id);
+                void removePerson(person.id);
                 onClose();
               }
             }}

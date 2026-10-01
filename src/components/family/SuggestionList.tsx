@@ -1,8 +1,11 @@
-import type { Suggestion } from '@/lib/family-store';
+import { useState } from 'react';
+
 import { useFamily } from '@/lib/family-store';
-import type { Key } from '@/lib/i18n';
 import { useT } from '@/lib/i18n';
 import { btn, btnPrimary } from '@/lib/utils';
+
+import type { Suggestion } from '@/lib/family-store';
+import type { Key } from '@/lib/i18n';
 
 /** Admin view: pending suggestions grouped by the person they concern. */
 export function SuggestionList({
@@ -12,7 +15,25 @@ export function SuggestionList({
 }) {
   const { byId, suggestions, resolveSuggestion } = useFamily();
   const { t } = useT();
+  /** Suggestions with an accept/dismiss request in flight. */
+  const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
   const groups = new Map<string, Suggestion[]>();
+
+  const resolve = async (id: string, accept: boolean) => {
+    if (pending.has(id)) return;
+    setPending((p) => new Set(p).add(id));
+
+    try {
+      await resolveSuggestion(id, accept);
+    } finally {
+      setPending((p) => {
+        const next = new Set(p);
+        next.delete(id);
+
+        return next;
+      });
+    }
+  };
 
   suggestions.forEach((s) =>
     groups.set(s.personId, [...(groups.get(s.personId) ?? []), s]),
@@ -49,13 +70,15 @@ export function SuggestionList({
                 </span>
               </div>
               <button
-                onClick={() => resolveSuggestion(s.id, true)}
+                onClick={() => void resolve(s.id, true)}
+                disabled={pending.has(s.id)}
                 className={btnPrimary}
               >
                 {t('accept')}
               </button>
               <button
-                onClick={() => resolveSuggestion(s.id, false)}
+                onClick={() => void resolve(s.id, false)}
+                disabled={pending.has(s.id)}
                 className={btn}
               >
                 {t('dismiss')}
