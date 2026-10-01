@@ -9,6 +9,7 @@ import {
   createRootRouteWithContext,
   useRouter,
 } from '@tanstack/react-router';
+import { Analytics } from '@vercel/analytics/react';
 
 import { THEME_SCRIPT, ThemeProvider } from '@/lib/theme';
 
@@ -132,6 +133,8 @@ function RootShell({ children }: { children: ReactNode }) {
       {/* Browser extensions (e.g. Grammarly) add attributes to <body> before hydration. */}
       <body suppressHydrationWarning>
         {children}
+        {/* In dev it sends nothing and only logs debug lines to the console. */}
+        {import.meta.env.PROD && <Analytics />}
         <Scripts />
       </body>
     </html>
