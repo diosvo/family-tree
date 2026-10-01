@@ -243,6 +243,7 @@ function App() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t('search')}
+            aria-label={t('search')}
             className="w-full rounded-md border bg-background py-2 pr-3 pl-8 text-sm outline-none focus:ring-2 focus:ring-ring"
           />
           {q && tab === 'tree' && (
@@ -274,6 +275,7 @@ function App() {
             <button
               key={x.value}
               onClick={() => setTab(x.value)}
+              aria-current={tab === x.value ? 'page' : undefined}
               className={`border-b-2 py-2 whitespace-nowrap ${tab === x.value ? 'border-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
             >
               {x.label}
@@ -396,10 +398,15 @@ function App() {
           onClick={() => setAdding(false)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-person-title"
             className="w-full max-w-lg rounded-t-2xl border bg-card p-4 sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="mb-3 font-medium">{t('addPerson')}</h2>
+            <h2 id="add-person-title" className="mb-3 font-medium">
+              {t('addPerson')}
+            </h2>
             <AddPersonForm onDone={() => setAdding(false)} />
           </div>
         </div>

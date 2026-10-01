@@ -16,6 +16,7 @@ export function Segmented<T extends string>({
 }: Props<T>) {
   return (
     <div
+      role="group"
       className={cn(
         'inline-flex overflow-hidden rounded-md border bg-card text-xs',
         className,
@@ -25,6 +26,7 @@ export function Segmented<T extends string>({
         <button
           key={o.value}
           type="button"
+          aria-pressed={o.value === value}
           onClick={() => onChange(o.value)}
           className={cn(
             'px-2.5 py-1.5 transition-colors hover:bg-accent',
