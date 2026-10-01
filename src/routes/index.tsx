@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
-import { ArrowLeftRight, Lock, LogOut, Plus, Search } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Lock,
+  LogOut,
+  Plus,
+  Search,
+  Sprout,
+} from 'lucide-react';
 
+import { EmptyState } from '@/components/EmptyState';
 import { AddPersonForm } from '@/components/family/AddPersonForm';
 import { CompareBar } from '@/components/family/CompareBar';
 import { KinshipView } from '@/components/family/KinshipView';
@@ -121,6 +129,8 @@ function App() {
         : 'custom';
 
   const selected = selectedId ? byId.get(selectedId) : undefined;
+  /** Nobody saved yet: every people view shows one placeholder. */
+  const empty = people.length === 0;
   const results = q ? people.filter((p) => matches(p, q)) : people;
 
   /** Select a person; make them visible in the tree if they are hidden. */
@@ -271,7 +281,25 @@ function App() {
       </header>
 
       <main className="relative flex min-h-0 flex-1 flex-col md:flex-row">
-        {tab === 'tree' && (
+        {empty && tab !== 'suggestions' && (
+          <EmptyState
+            icon={Sprout}
+            title={t('noPeople')}
+            description={
+              isAdmin ? t('noPeopleHintAdmin') : t('noPeopleHintGuest')
+            }
+          >
+            {isAdmin && (
+              <button
+                onClick={() => setAdding(true)}
+                className={`${btnPrimary} flex items-center gap-1`}
+              >
+                <Plus className="h-3.5 w-3.5" /> {t('addPerson')}
+              </button>
+            )}
+          </EmptyState>
+        )}
+        {!empty && tab === 'tree' && (
           <>
             <div className="relative min-h-48 flex-1">
               <ClientOnly
@@ -335,7 +363,7 @@ function App() {
             )}
           </>
         )}
-        {tab === 'library' && (
+        {!empty && tab === 'library' && (
           <Library
             people={results}
             levels={levels}
@@ -343,10 +371,10 @@ function App() {
             onSelect={select}
           />
         )}
-        {tab === 'memorials' && (
+        {!empty && tab === 'memorials' && (
           <MemorialList people={people} now={now} onSelect={select} />
         )}
-        {tab === 'kinship' && (
+        {!empty && tab === 'kinship' && (
           <KinshipView
             people={people}
             pair={pair}

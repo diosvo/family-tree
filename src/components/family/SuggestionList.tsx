@@ -1,5 +1,8 @@
 import { useState } from 'react';
 
+import { Inbox } from 'lucide-react';
+
+import { EmptyState } from '@/components/EmptyState';
 import { useFamily } from '@/lib/family-store';
 import { useT } from '@/lib/i18n';
 import { btn, btnPrimary } from '@/lib/utils';
@@ -42,13 +45,17 @@ export function SuggestionList({
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 space-y-4 overflow-auto p-4">
       {!suggestions.length && (
-        <p className="text-sm text-muted-foreground">{t('noSuggestions')}</p>
+        <EmptyState
+          icon={Inbox}
+          title={t('noSuggestions')}
+          description={t('noSuggestionsHint')}
+        />
       )}
       {[...groups].map(([personId, list]) => (
         <section key={personId} className="rounded-lg border bg-card">
           <button
             onClick={() => onSelect(personId)}
-            className="w-full border-b px-3 py-2 text-left text-sm font-medium hover:bg-accent"
+            className="w-full rounded-t-lg border-b px-3 py-2 text-left text-sm font-medium hover:bg-accent"
           >
             {byId.get(personId)?.name ?? t('removed')}
             <span className="ml-2 text-xs font-normal text-muted-foreground">

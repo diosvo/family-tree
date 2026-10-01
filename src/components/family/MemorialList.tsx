@@ -1,3 +1,6 @@
+import { CalendarOff } from 'lucide-react';
+
+import { EmptyState } from '@/components/EmptyState';
 import { deathYear } from '@/lib/family-data';
 import { useT } from '@/lib/i18n';
 import {
@@ -52,39 +55,50 @@ export function MemorialList({ people, now, onSelect }: Props) {
         </>
       }
     >
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr>
-            <th className={`${th} py-2`}>{t('name')}</th>
-            <th className={`${th} py-2 whitespace-nowrap`}>{t('lunar')}</th>
-            <th className={`${th} py-2 whitespace-nowrap`}>{t('solar')}</th>
-            <th className={`${th} hidden py-2 sm:table-cell`}>{t('diedIn')}</th>
-            <th className={`${th} py-2 text-right`}>{t('daysLeft')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {upcoming.map(({ p, day, month, days, date }) => (
-            <PersonRow key={p.id} person={p} onSelect={onSelect}>
-              <td className={`${td} whitespace-nowrap`}>
-                {lunarLabel(day, month, lang)}
-              </td>
-              <td className={`${td} whitespace-nowrap`}>
-                {solarLabel(date, lang)}
-              </td>
-              <td
-                className={`${td} hidden text-muted-foreground sm:table-cell`}
-              >
-                {deathYear(p) ?? ''}
-              </td>
-              <td
-                className={`${td} text-right whitespace-nowrap ${days <= SOON ? 'font-medium text-(--c)' : 'text-muted-foreground'}`}
-              >
-                {days === 0 ? t('today') : `${days} ${t('days')}`}
-              </td>
-            </PersonRow>
-          ))}
-        </tbody>
-      </table>
+      {now && !upcoming.length && (
+        <EmptyState
+          icon={CalendarOff}
+          title={t('noMemorials')}
+          description={t('noMemorialsHint')}
+        />
+      )}
+      {upcoming.length > 0 && (
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className={`${th} py-2`}>{t('name')}</th>
+              <th className={`${th} py-2 whitespace-nowrap`}>{t('lunar')}</th>
+              <th className={`${th} py-2 whitespace-nowrap`}>{t('solar')}</th>
+              <th className={`${th} hidden py-2 sm:table-cell`}>
+                {t('diedIn')}
+              </th>
+              <th className={`${th} py-2 text-right`}>{t('daysLeft')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {upcoming.map(({ p, day, month, days, date }) => (
+              <PersonRow key={p.id} person={p} onSelect={onSelect}>
+                <td className={`${td} whitespace-nowrap`}>
+                  {lunarLabel(day, month, lang)}
+                </td>
+                <td className={`${td} whitespace-nowrap`}>
+                  {solarLabel(date, lang)}
+                </td>
+                <td
+                  className={`${td} hidden text-muted-foreground sm:table-cell`}
+                >
+                  {deathYear(p) ?? ''}
+                </td>
+                <td
+                  className={`${td} text-right whitespace-nowrap ${days <= SOON ? 'font-medium text-(--c)' : 'text-muted-foreground'}`}
+                >
+                  {days === 0 ? t('today') : `${days} ${t('days')}`}
+                </td>
+              </PersonRow>
+            ))}
+          </tbody>
+        </table>
+      )}
     </TablePage>
   );
 }

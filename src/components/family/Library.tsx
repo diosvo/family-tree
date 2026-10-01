@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
 
+import { SearchX } from 'lucide-react';
+
+import { EmptyState } from '@/components/EmptyState';
 import { Segmented } from '@/components/ui/segmented';
 import { SelectField } from '@/components/ui/select-field';
 import { birthYear, deathYear, isDeceased } from '@/lib/family-data';
@@ -109,40 +112,49 @@ export function Library({ people, levels, now, onSelect }: Props) {
         </>
       }
     >
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr>
-            <th className={`${th} py-2`}>{t('name')}</th>
-            <th className={`${th} py-2`}>{t('birth')}</th>
-            <th className={`${th} hidden py-2 sm:table-cell`}>{t('died')}</th>
-            <th className={`${th} py-2`}>{t('age')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {shown.map((p) => (
-            <PersonRow key={p.id} person={p} onSelect={onSelect}>
-              <td className={`${td} whitespace-nowrap`}>
-                <CalendarDate
-                  date={p.birthDate}
-                  calendar={calendar}
-                  fallback="?"
-                />
-              </td>
-              <td
-                className={`${td} hidden text-muted-foreground sm:table-cell`}
-              >
-                <CalendarDate date={p.deathDate} calendar={calendar} />
-              </td>
-              <td className={`${td} text-muted-foreground`}>
-                <span className="flex items-center gap-1.5">
-                  {ageOf(p, year)}
-                  {isDeceased(p) && <DeceasedMark />}
-                </span>
-              </td>
-            </PersonRow>
-          ))}
-        </tbody>
-      </table>
+      {!rows.length && (
+        <EmptyState
+          icon={SearchX}
+          title={t('noMatch')}
+          description={t('noFilterMatch')}
+        />
+      )}
+      {rows.length > 0 && (
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className={`${th} py-2`}>{t('name')}</th>
+              <th className={`${th} py-2`}>{t('birth')}</th>
+              <th className={`${th} hidden py-2 sm:table-cell`}>{t('died')}</th>
+              <th className={`${th} py-2`}>{t('age')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((p) => (
+              <PersonRow key={p.id} person={p} onSelect={onSelect}>
+                <td className={`${td} whitespace-nowrap`}>
+                  <CalendarDate
+                    date={p.birthDate}
+                    calendar={calendar}
+                    fallback="?"
+                  />
+                </td>
+                <td
+                  className={`${td} hidden text-muted-foreground sm:table-cell`}
+                >
+                  <CalendarDate date={p.deathDate} calendar={calendar} />
+                </td>
+                <td className={`${td} text-muted-foreground`}>
+                  <span className="flex items-center gap-1.5">
+                    {ageOf(p, year)}
+                    {isDeceased(p) && <DeceasedMark />}
+                  </span>
+                </td>
+              </PersonRow>
+            ))}
+          </tbody>
+        </table>
+      )}
       {remaining > 0 && (
         <button
           onClick={() => setLimit((l) => l + PAGE)}
