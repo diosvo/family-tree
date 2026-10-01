@@ -20,6 +20,7 @@ import { PersonPanel } from '@/components/family/PersonPanel';
 import { SuggestionList } from '@/components/family/SuggestionList';
 import TreeView from '@/components/family/TreeView';
 import { Footer } from '@/components/Footer';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Segmented } from '@/components/ui/segmented';
 import {
   birthYear,
@@ -198,6 +199,7 @@ function App() {
               onChange={setLang}
               options={LANGS.map((l) => ({ value: l, label: l.toUpperCase() }))}
             />
+            <ThemeToggle />
             {isAdmin && (
               <button
                 onClick={() => setAdding(true)}

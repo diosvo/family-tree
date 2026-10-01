@@ -24,6 +24,7 @@ import {
   lifespan,
 } from '@/lib/family-data';
 import { useT } from '@/lib/i18n';
+import { useTheme } from '@/lib/theme';
 
 import { DeceasedMark } from './PersonParts';
 
@@ -66,7 +67,7 @@ function PersonNode({ data }: NodeProps<Node<PData>>) {
       <HiddenHandle type="target" />
       <div
         data-selected={selected}
-        className="relative node-in rounded-lg border border-(--c) bg-card px-3 py-2 shadow-sm transition-colors hover:bg-(--c-soft) data-[selected=true]:bg-(--c) data-[selected=true]:text-white data-[selected=true]:hover:bg-(--c)"
+        className="relative node-in rounded-lg border border-(--c) bg-card px-3 py-2 shadow-sm transition-colors hover:bg-(--c-soft) data-[selected=true]:bg-(--c) data-[selected=true]:text-background data-[selected=true]:hover:bg-(--c)"
         style={genderVars(p.gender)}
       >
         {mark > 0 && (
@@ -92,7 +93,7 @@ function PersonNode({ data }: NodeProps<Node<PData>>) {
                   e.stopPropagation();
                   onExpand(p.id);
                 }}
-                className="nodrag nopan absolute -bottom-3 left-1/2 z-10 flex h-6 min-w-6 -translate-x-1/2 cursor-pointer items-center justify-center gap-0.5 rounded-full border border-(--c) bg-card px-1.5 text-[11px] leading-none text-foreground shadow-sm transition-all hover:scale-110 hover:bg-(--c) hover:text-white focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-95"
+                className="nodrag nopan absolute -bottom-3 left-1/2 z-10 flex h-6 min-w-6 -translate-x-1/2 cursor-pointer items-center justify-center gap-0.5 rounded-full border border-(--c) bg-card px-1.5 text-[11px] leading-none text-foreground shadow-sm transition-all hover:scale-110 hover:bg-(--c) hover:text-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-95"
               >
                 <ChevronDown className="h-3 w-3" />
                 {hiddenKids}
@@ -328,6 +329,7 @@ function Inner({
   onExpand,
 }: Props) {
   const rf = useReactFlow();
+  const { theme } = useTheme();
   const box = useRef<HTMLDivElement>(null);
   /** React Flow has measured its nodes; viewport calls are reliable from here. */
   const [ready, setReady] = useState(false);
@@ -433,6 +435,7 @@ function Inner({
         nodesDraggable={false}
         nodesConnectable={false}
         minZoom={0.1}
+        colorMode={theme}
         onInit={() => setReady(true)}
       >
         <Controls showInteractive={false} />

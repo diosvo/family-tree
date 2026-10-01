@@ -21,6 +21,7 @@ It helps families remember where they come from, how relatives address one anoth
 - Search and filter relatives by generation level and gender, with birth dates in both solar and lunar calendars.
 - Suggest updates to a record and let an admin review them.
 - Switch between Vietnamese and English anytime.
+- Light, dark, or system theme, remembered across visits.
 
 **🕯️ Memorial days**
 

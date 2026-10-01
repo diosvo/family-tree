@@ -113,6 +113,10 @@ const en = {
   field_birthDate: 'Date of birth, solar (DD/MM/YYYY or YYYY)',
   field_deathDate: 'Date of death, solar (DD/MM/YYYY or YYYY)',
   field_other: 'Other note',
+  theme: 'Theme',
+  light: 'Light',
+  dark: 'Dark',
+  system: 'System',
 };
 
 const vi: Record<Key, string> = {
@@ -220,6 +224,10 @@ const vi: Record<Key, string> = {
   field_birthDate: 'Ngày sinh dương lịch (ngày/tháng/năm hoặc năm)',
   field_deathDate: 'Ngày mất dương lịch (ngày/tháng/năm hoặc năm)',
   field_other: 'Ghi chú khác',
+  theme: 'Giao diện',
+  light: 'Sáng',
+  dark: 'Tối',
+  system: 'Theo hệ thống',
 };
 
 export type Key = keyof typeof en;

@@ -10,6 +10,8 @@ import {
   useRouter,
 } from '@tanstack/react-router';
 
+import { THEME_SCRIPT, ThemeProvider } from '@/lib/theme';
+
 import appCss from '../styles.css?url';
 
 import type { QueryClient } from '@tanstack/react-query';
@@ -88,7 +90,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { property: 'og:type', content: 'website' },
         { name: 'twitter:card', content: 'summary' },
+        { name: 'color-scheme', content: 'light dark' },
       ],
+      scripts: [{ children: THEME_SCRIPT }],
       links: [
         {
           rel: 'stylesheet',
@@ -120,7 +124,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="vi">
+    // The theme script toggles `.dark` on <html> before hydration.
+    <html lang="vi" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
@@ -138,8 +143,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <ThemeProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

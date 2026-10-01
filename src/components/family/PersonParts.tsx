@@ -63,14 +63,16 @@ export function CourtesyName({
   );
 }
 
-/** Small black band marking a deceased person, with a tooltip. */
+/** Small dark band marking a deceased person, with a tooltip. */
 export function DeceasedMark({ className }: { className?: string }) {
   const { t } = useT();
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className={cn('h-2.5 w-4 rounded-[2px] bg-black', className)} />
+        <span
+          className={cn('h-2.5 w-4 rounded-[2px] bg-foreground', className)}
+        />
       </TooltipTrigger>
       <TooltipContent>{t('deceased')}</TooltipContent>
     </Tooltip>
