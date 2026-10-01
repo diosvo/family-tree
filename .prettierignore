@@ -13,3 +13,7 @@ src/routeTree.gen.ts
 dist
 dist-ssr
 node_modules
+
+# Playwright output
+test-results
+playwright-report

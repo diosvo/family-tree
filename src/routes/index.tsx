@@ -247,7 +247,10 @@ function App() {
             className="w-full rounded-md border bg-background py-2 pr-3 pl-8 text-sm outline-none focus:ring-2 focus:ring-ring"
           />
           {q && tab === 'tree' && (
-            <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover shadow-lg">
+            <div
+              data-testid="search-results"
+              className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover shadow-lg"
+            >
               {results.slice(0, 12).map((p) => (
                 <button
                   key={p.id}
