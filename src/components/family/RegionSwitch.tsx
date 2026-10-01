@@ -1,5 +1,4 @@
 import { Segmented } from '@/components/ui/segmented';
-
 import { useFamily } from '@/lib/family-store';
 import { useT } from '@/lib/i18n';
 import { REGIONS } from '@/lib/kinship';

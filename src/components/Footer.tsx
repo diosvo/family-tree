@@ -1,20 +1,15 @@
-import {
-  Facebook,
-  Github,
-  Heart,
-  Linkedin,
-  type LucideIcon,
-} from 'lucide-react';
+import { Facebook, Github, Heart, Linkedin } from 'lucide-react';
 
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-
 import { useT } from '@/lib/i18n';
-import type { LinkKind } from '@/lib/site';
 import { AUTHOR } from '@/lib/site';
+
+import type { LinkKind } from '@/lib/site';
+import type { LucideIcon } from 'lucide-react';
 
 const ICONS: Record<LinkKind, LucideIcon> = {
   github: Github,

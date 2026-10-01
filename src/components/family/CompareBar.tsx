@@ -1,6 +1,5 @@
 import { X } from 'lucide-react';
 
-import type { Person } from '@/lib/family-data';
 import { givenName } from '@/lib/family-data';
 import { useFamily } from '@/lib/family-store';
 import { useT } from '@/lib/i18n';
@@ -8,6 +7,8 @@ import { kinLabel, kinship } from '@/lib/kinship';
 import { btn, btnPrimary } from '@/lib/utils';
 
 import { RegionSwitch } from './RegionSwitch';
+
+import type { Person } from '@/lib/family-data';
 
 type Props = {
   people: Person[];

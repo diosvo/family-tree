@@ -1,12 +1,8 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  type ReactNode,
-} from 'react';
+import { createContext, useContext, useEffect, useMemo } from 'react';
 
 import { oneOf, useStoredState } from './use-stored-state';
+
+import type { ReactNode } from 'react';
 
 export type Lang = 'vi' | 'en';
 export const LANGS: Lang[] = ['vi', 'en'];

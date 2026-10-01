@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react';
-
-import type { Person } from '@/lib/family-data';
 import { genderVars } from '@/lib/family-data';
 import { cn } from '@/lib/utils';
 
 import { CourtesyName } from './PersonParts';
+
+import type { Person } from '@/lib/family-data';
+import type { ReactNode } from 'react';
 
 /** Sticky header cell; add `py-2` unless the cell has its own padded content. */
 export const th =
