@@ -34,7 +34,7 @@ export default defineConfig([
   ...tanstackConfig,
 
   // React
-  reactHooks.configs['recommended-latest'],
+  reactHooks.configs.flat['recommended-latest'],
   reactRefresh.configs.vite,
 
   {
