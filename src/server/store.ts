@@ -10,7 +10,8 @@ import type { Person, Suggestion } from '@/lib/family-data';
 /*
  * Everyone and every pending suggestion, kept together as one JSON document:
  *
- * - in a private Vercel Blob, `family.json`, when BLOB_READ_WRITE_TOKEN is set;
+ * - in a private Vercel Blob, `family.json`, when BLOB_STORE_ID or
+ *   BLOB_READ_WRITE_TOKEN is set;
  * - otherwise in a file (DATA_FILE, default `.data/family.json`) for local
  *   development and the e2e tests.
  *
@@ -139,7 +140,11 @@ let instance: ReturnType<typeof createStore> | undefined;
 
 function connect() {
   const env = process.env;
-  if (env.BLOB_READ_WRITE_TOKEN) return createStore(blobBackend);
+  // A connected store sets BLOB_STORE_ID (the SDK then signs in with the
+  // deployment's OIDC token); older connections set BLOB_READ_WRITE_TOKEN.
+  if (env.BLOB_STORE_ID || env.BLOB_READ_WRITE_TOKEN) {
+    return createStore(blobBackend);
+  }
 
   // A deployment's file system is read-only and reset on every deploy.
   if (env.VERCEL) {
