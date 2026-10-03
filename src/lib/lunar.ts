@@ -258,6 +258,14 @@ export function parseDate(s: string): Date | undefined {
 export const toISODate = (date: Date) =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
+/** A stored date as typed in forms: "DD/MM/YYYY", or the bare year. */
+export function typedDate(date: string | undefined) {
+  if (!date) return '';
+  const full = parseDate(date);
+
+  return full ? solarDateLabel(full) : date;
+}
+
 /**
  * A typed date in stored form: a full date becomes "YYYY-MM-DD", a bare year
  * stays "YYYY"; anything else is undefined.

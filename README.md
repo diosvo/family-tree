@@ -20,6 +20,7 @@ It helps families remember where they come from, how relatives address one anoth
 
 - Search and filter relatives by generation level and gender, with birth dates in both solar and lunar calendars.
 - Suggest updates to a record and let an admin review them.
+- Admins add, edit and remove people, and can download all the data as JSON.
 - Switch between Vietnamese and English anytime.
 - Light, dark, or system theme, remembered across visits.
 
@@ -39,6 +40,10 @@ It helps families remember where they come from, how relatives address one anoth
 npm install
 npm run dev
 ```
+
+### 💾 Backups
+
+Every save also writes a snapshot, `history/family-<time>.json`, next to `family.json` (in the Blob store, or in `.data/history/` locally). To undo a bad edit, copy a snapshot back over `family.json`. Admins can also download the current data from the Suggestions tab.
 
 ## 🧩 Built with
 

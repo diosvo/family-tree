@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Inbox } from 'lucide-react';
+import { Download, Inbox } from 'lucide-react';
 
 import { EmptyState } from '@/components/EmptyState';
 import { useFamily } from '@/lib/family-store';
@@ -16,7 +16,9 @@ export function SuggestionList({
 }: {
   onSelect: (id: string) => void;
 }) {
-  const { byId, suggestions, resolveSuggestion } = useFamily();
+  const { byId, suggestions, resolveSuggestion, reportError, exportFamily } =
+    useFamily();
+
   const { t } = useT();
   /** Suggestions with an accept/dismiss request in flight. */
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
@@ -28,6 +30,8 @@ export function SuggestionList({
 
     try {
       await resolveSuggestion(id, accept);
+    } catch (error) {
+      reportError(error);
     } finally {
       setPending((p) => {
         const next = new Set(p);
@@ -42,8 +46,35 @@ export function SuggestionList({
     groups.set(s.personId, [...(groups.get(s.personId) ?? []), s]),
   );
 
+  /** Save the whole stored document as a file, as a backup. */
+  const download = async () => {
+    try {
+      const doc = await exportFamily();
+
+      const blob = new Blob([JSON.stringify(doc, null, 2)], {
+        type: 'application/json',
+      });
+
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `family-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (error) {
+      reportError(error);
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 space-y-4 overflow-auto p-4">
+      <div className="flex justify-end">
+        <button
+          onClick={() => void download()}
+          className={`${btn} flex items-center gap-1`}
+        >
+          <Download className="h-3.5 w-3.5" /> {t('downloadData')}
+        </button>
+      </div>
       {!suggestions.length && (
         <EmptyState
           icon={Inbox}

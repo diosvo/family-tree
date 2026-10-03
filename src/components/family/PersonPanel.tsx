@@ -1,7 +1,14 @@
 import { useState } from 'react';
 
-import { ArrowLeftRight, ChevronDown, ChevronUp, X } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  X,
+} from 'lucide-react';
 
+import { Dialog } from '@/components/ui/dialog';
 import { SelectField } from '@/components/ui/select-field';
 import {
   childrenOf,
@@ -12,9 +19,10 @@ import {
 } from '@/lib/family-data';
 import { useFamily } from '@/lib/family-store';
 import { useT } from '@/lib/i18n';
-import { lunarLabel, memorialOf } from '@/lib/lunar';
+import { lunarLabel, memorialOf, typedDate } from '@/lib/lunar';
 import { btn, btnPrimary, cn, input } from '@/lib/utils';
 
+import { PersonForm } from './PersonForm';
 import { CourtesyName, DeceasedMark } from './PersonParts';
 
 import type { Person } from '@/lib/family-data';
@@ -28,6 +36,21 @@ const FIELDS: Array<Suggestion['field']> = [
   'deathDate',
   'other',
 ];
+
+/** What a person has now for a suggestion field, as it would be typed. */
+function currentValue(p: Person, field: Suggestion['field']) {
+  switch (field) {
+    case 'name':
+      return p.name;
+    case 'courtesyName':
+      return p.courtesyName ?? '';
+    case 'birthDate':
+    case 'deathDate':
+      return typedDate(p[field]);
+    case 'other':
+      return '';
+  }
+}
 
 function RelList({
   label,
@@ -72,11 +95,19 @@ export function PersonPanel({
   onHouse,
   onCompare,
 }: Props) {
-  const { people, byId, isAdmin, removePerson, addSuggestion } = useFamily();
+  const { people, byId, isAdmin, removePerson, addSuggestion, reportError } =
+    useFamily();
+
   const { t, lang } = useT();
   const [field, setField] = useState<Suggestion['field']>('courtesyName');
-  const [value, setValue] = useState('');
+  /** Starts as the current value of `field`, to be corrected in place. */
+  const [value, setValue] = useState(() => currentValue(person, field));
+  const current = currentValue(person, field);
+  const unchanged = value.trim() === current;
   const [author, setAuthor] = useState('');
+  /** Hidden from people; a bot that fills it is ignored by the server. */
+  const [website, setWebsite] = useState('');
+  const [editing, setEditing] = useState(false);
 
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>(
     'idle',
@@ -84,6 +115,16 @@ export function PersonPanel({
 
   /** On phones the panel starts collapsed to the header and family buttons. */
   const [expanded, setExpanded] = useState(false);
+
+  // The panel stays mounted while another person is opened: start their
+  // suggestion from what they have now.
+  const [shownId, setShownId] = useState(person.id);
+
+  if (shownId !== person.id) {
+    setShownId(person.id);
+    setValue(current);
+    setStatus('idle');
+  }
 
   const get = (ids: Array<string | undefined>) =>
     ids.flatMap((id) => (id && byId.get(id)) || []);
@@ -187,7 +228,7 @@ export function PersonPanel({
           className="space-y-2 rounded-lg border p-3"
           onSubmit={async (e) => {
             e.preventDefault();
-            if (!value.trim() || status === 'sending') return;
+            if (!value.trim() || unchanged || status === 'sending') return;
             setStatus('sending');
 
             try {
@@ -196,9 +237,11 @@ export function PersonPanel({
                 field,
                 value: value.trim(),
                 author: author.trim() || 'Anonymous',
+                website,
               });
 
-              setValue('');
+              // The person keeps their value until the admin accepts.
+              setValue(current);
               setStatus('sent');
             } catch {
               // Keep the text so the visitor can retry.
@@ -211,7 +254,12 @@ export function PersonPanel({
             <SelectField
               className="w-40 shrink-0"
               value={field}
-              onChange={(v) => setField(v as Suggestion['field'])}
+              onChange={(v) => {
+                const next = v as Suggestion['field'];
+                setField(next);
+                setValue(currentValue(person, next));
+                setStatus('idle');
+              }}
               options={FIELDS.map((f) => ({
                 value: f,
                 label: t(`field_${f}` as Key),
@@ -233,13 +281,23 @@ export function PersonPanel({
             placeholder={t('yourName')}
             className={input}
           />
+          <input
+            name="website"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden
+            className="hidden"
+          />
           {status === 'failed' && (
             <p role="alert" className="text-sm text-destructive">
               {t('sendFailed')}
             </p>
           )}
           <button
-            disabled={status === 'sending'}
+            // Nothing to send until the current value is changed.
+            disabled={status === 'sending' || (unchanged && status !== 'sent')}
             className={`${btn} w-full py-2 text-sm`}
           >
             {status === 'sending'
@@ -251,18 +309,32 @@ export function PersonPanel({
         </form>
 
         {isAdmin && (
-          <button
-            onClick={() => {
-              if (confirm(t('confirmRemove', { name: person.name }))) {
-                void removePerson(person.id);
-                onClose();
-              }
-            }}
-            className={`${btn} w-full border-destructive text-destructive`}
-          >
-            {t('removePerson')}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setEditing(true)}
+              className={`${btn} flex flex-1 items-center justify-center gap-1`}
+            >
+              <Pencil className="h-3 w-3" /> {t('editPerson')}
+            </button>
+            <button
+              onClick={() => {
+                if (confirm(t('confirmRemove', { name: person.name }))) {
+                  removePerson(person.id).then(onClose, reportError);
+                }
+              }}
+              className={`${btn} flex-1 border-destructive text-destructive`}
+            >
+              {t('removePerson')}
+            </button>
+          </div>
         )}
+        <Dialog
+          open={editing}
+          onOpenChange={setEditing}
+          title={`${t('editPerson')}: ${person.name}`}
+        >
+          <PersonForm person={person} onDone={() => setEditing(false)} />
+        </Dialog>
       </div>
     </div>
   );

@@ -1,26 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
-import {
-  ArrowLeftRight,
-  Lock,
-  LogOut,
-  Plus,
-  Search,
-  Sprout,
-} from 'lucide-react';
+import { ArrowLeftRight, Plus, Search, Sprout } from 'lucide-react';
 
+import { AdminButton } from '@/components/AdminButton';
 import { EmptyState } from '@/components/EmptyState';
-import { AddPersonForm } from '@/components/family/AddPersonForm';
+import { ErrorNotice } from '@/components/ErrorNotice';
 import { CompareBar } from '@/components/family/CompareBar';
 import { KinshipView } from '@/components/family/KinshipView';
 import { Library } from '@/components/family/Library';
 import { MemorialList } from '@/components/family/MemorialList';
+import { PersonForm } from '@/components/family/PersonForm';
 import { PersonPanel } from '@/components/family/PersonPanel';
 import { SuggestionList } from '@/components/family/SuggestionList';
 import TreeView from '@/components/family/TreeView';
 import { Footer } from '@/components/Footer';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Dialog } from '@/components/ui/dialog';
 import { Segmented } from '@/components/ui/segmented';
 import {
   birthYear,
@@ -77,7 +73,7 @@ type Scope = 'main' | 'all' | 'custom';
 const MAIN_DEPTH = 4;
 
 function App() {
-  const { people, byId, suggestions, isAdmin, login, logout } = useFamily();
+  const { people, byId, suggestions, isAdmin } = useFamily();
   const { t, lang, setLang } = useT();
   const [tab, setTab] = useState<Tab>('tree');
   const [selectedId, setSelectedId] = useState<string>();
@@ -202,32 +198,9 @@ function App() {
                 <Plus className="h-3.5 w-3.5" /> {t('add')}
               </button>
             )}
-            <button
-              onClick={() => {
-                if (isAdmin) {
-                  if (tab === 'suggestions') setTab('tree');
-                  void logout();
-
-                  return;
-                }
-
-                const c = prompt(t('adminPasscode'));
-
-                if (c) {
-                  void login(c).then((ok) => {
-                    if (!ok) alert(t('wrongPasscode'));
-                  });
-                }
-              }}
-              className={`${btn} flex items-center gap-1`}
-            >
-              {isAdmin ? (
-                <LogOut className="h-3.5 w-3.5" />
-              ) : (
-                <Lock className="h-3.5 w-3.5" />
-              )}
-              {t('admin')}
-            </button>
+            <AdminButton
+              onLogout={() => tab === 'suggestions' && setTab('tree')}
+            />
           </div>
         </div>
 
@@ -388,26 +361,11 @@ function App() {
         )}
       </main>
       <Footer />
+      <ErrorNotice />
 
-      {adding && (
-        <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-foreground/30 sm:items-center"
-          onClick={() => setAdding(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="add-person-title"
-            className="w-full max-w-lg rounded-t-2xl border bg-card p-4 sm:rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="add-person-title" className="mb-3 font-medium">
-              {t('addPerson')}
-            </h2>
-            <AddPersonForm onDone={() => setAdding(false)} />
-          </div>
-        </div>
-      )}
+      <Dialog open={adding} onOpenChange={setAdding} title={t('addPerson')}>
+        <PersonForm onDone={() => setAdding(false)} />
+      </Dialog>
     </div>
   );
 }
