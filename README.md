@@ -67,6 +67,7 @@ npm run test:e2e   # end-to-end tests (Playwright)
 
 - **Unit tests** (`src/**/*.test.ts`) cover the kinship terms, lunar calendar, tree helpers, input validation and the store.
 - **End-to-end tests** (`e2e/`) start a dev server that keeps its data in `.data/e2e.json`, starting from the seed data (`src/server/seed-data.ts`). Delete that file to start again from the seed. Admin tests need `ADMIN_PASSCODE`; tests that change data only run with `E2E_WRITES=1`.
+- CI (`.github/workflows/ci.yml`) runs both on every pull request.
 
 ## 🧩 Built with
 
