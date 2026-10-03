@@ -46,6 +46,16 @@ npm run dev
 
 Every save also writes a snapshot, `history/family-<time>.json`, next to `family.json` (in the Blob store, or in `.data/history/` locally). To undo a bad edit, copy a snapshot back over `family.json`. Admins can also download the current data from the Suggestions tab.
 
+## 🧪 Testing
+
+```bash
+npm run check      # typecheck, lint, format and unit tests
+npm test           # unit tests (Vitest), `npm run test:watch` while editing
+npm run test:e2e   # end-to-end tests (Playwright)
+```
+
+- **Unit tests** (`src/**/*.test.ts`) cover the kinship terms, lunar calendar, tree helpers, input validation and the store.
+
 ## 🧩 Built with
 
 - [TanStack Start](https://tanstack.com/start) and [TanStack Router](https://tanstack.com/router)
