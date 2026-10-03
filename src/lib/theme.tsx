@@ -1,11 +1,8 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, useContext, useEffect, useMemo } from 'react';
+
+import { useHydrated } from '@tanstack/react-router';
+
+import { oneOf, useStoredState } from './use-stored-state';
 
 import type { ReactNode } from 'react';
 
@@ -21,18 +18,7 @@ const QUERY = '(prefers-color-scheme: dark)';
  */
 export const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(KEY)});var d=t==='dark'||(t!=='light'&&matchMedia(${JSON.stringify(QUERY)}).matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})()`;
 
-const isTheme = (v: unknown): v is Theme =>
-  (THEMES as readonly unknown[]).includes(v);
-
-const readStored = (): Theme => {
-  try {
-    const raw = localStorage.getItem(KEY);
-
-    return isTheme(raw) ? raw : 'system';
-  } catch {
-    return 'system';
-  }
-};
+const themeCodec = oneOf(THEMES);
 
 const applyTheme = (theme: Theme) => {
   const dark =
@@ -50,18 +36,13 @@ const ThemeCtx = createContext<Ctx | null>(null);
 
 /** Light / dark / system preference, persisted in localStorage and mirrored to the `.dark` class. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Start with 'system' on both server and client so hydration matches; the
-  // saved choice loads in an effect (the head script already painted it).
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [loaded, setLoaded] = useState(false);
+  // 'system' on the server and while hydrating, so markup matches; the head
+  // script has already painted the saved choice.
+  const [theme, setTheme] = useStoredState<Theme>(KEY, 'system', themeCodec);
+  const hydrated = useHydrated();
 
   useEffect(() => {
-    setThemeState(readStored());
-    setLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
+    if (!hydrated) return;
     applyTheme(theme);
 
     if (theme !== 'system') return;
@@ -71,15 +52,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     mq.addEventListener('change', onChange);
 
     return () => mq.removeEventListener('change', onChange);
-  }, [theme, loaded]);
-
-  const setTheme = useCallback((t: Theme) => {
-    setThemeState(t);
-
-    try {
-      localStorage.setItem(KEY, t);
-    } catch {}
-  }, []);
+  }, [theme, hydrated]);
 
   const value = useMemo<Ctx>(() => ({ theme, setTheme }), [theme, setTheme]);
 

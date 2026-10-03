@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 /** How a value is written to and read back from localStorage. */
 export type Codec<T> = {
@@ -20,24 +20,65 @@ export const oneOf = <T extends string>(values: readonly T[]): Codec<T> => ({
   serialize: (value) => value,
 });
 
-/** `useState` mirrored to localStorage; initial render stays stable, then saved values load and persist. */
+/** Stand-in for localStorage when the browser refuses it (e.g. privacy modes). */
+const memory = new Map<string, string>();
+const listeners = new Set<() => void>();
+
+function subscribe(onChange: () => void) {
+  listeners.add(onChange);
+  // Other tabs changing the same key.
+  window.addEventListener('storage', onChange);
+
+  return () => {
+    listeners.delete(onChange);
+    window.removeEventListener('storage', onChange);
+  };
+}
+
+function read(key: string) {
+  try {
+    return localStorage.getItem(key) ?? memory.get(key) ?? null;
+  } catch {
+    return memory.get(key) ?? null;
+  }
+}
+
+function write(key: string, raw: string) {
+  try {
+    localStorage.setItem(key, raw);
+  } catch {
+    memory.set(key, raw);
+  }
+
+  listeners.forEach((l) => l());
+}
+
+/**
+ * A value kept in localStorage. The server and the hydrating render use
+ * `initial`, so markup matches; the saved value follows right after, and
+ * changes in other tabs are picked up too.
+ */
 export function useStoredState<T>(key: string, initial: T, codec: Codec<T>) {
-  const [value, setValue] = useState(initial);
-  const [loaded, setLoaded] = useState(false);
+  const raw = useSyncExternalStore(
+    subscribe,
+    () => read(key),
+    () => null,
+  );
 
-  useEffect(() => {
+  const value = useMemo(() => {
+    if (raw === null) return initial;
+
     try {
-      const raw = localStorage.getItem(key);
-      const saved = raw === null ? undefined : codec.parse(raw);
-      if (saved !== undefined) setValue(saved);
-    } catch {}
+      return codec.parse(raw) ?? initial;
+    } catch {
+      return initial;
+    }
+  }, [raw, codec, initial]);
 
-    setLoaded(true);
-  }, [key, codec]);
-
-  useEffect(() => {
-    if (loaded) localStorage.setItem(key, codec.serialize(value));
-  }, [key, codec, value, loaded]);
+  const setValue = useCallback(
+    (next: T) => write(key, codec.serialize(next)),
+    [key, codec],
+  );
 
   return [value, setValue] as const;
 }
