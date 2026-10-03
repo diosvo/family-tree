@@ -332,9 +332,12 @@ const spouseKin = (a: Person, b: Person): Kin =>
 
 const PARENT_WORDS = ['bố', 'mẹ', 'ba', 'má'];
 
+/** The first word of a term: "ông nội" → "ông", "em (họ)" → "em". */
+const firstWord = (term: string) => term.split(/[\s/(]/)[0];
+
 /** B is the spouse of X, where X is A's blood relative described by k. */
 function inLawBySpouse(r: Region, k: Kin, a: Person, b: Person): Kin {
-  const base = k.aCalls.split(/[\s/(]/)[0] ?? '';
+  const base = firstWord(k.aCalls);
   const en = `${k.en}'s ${male(b) ? 'husband' : 'wife'}`;
   const path = [...k.path, b];
   const suffix = `${male(b) ? 'rể' : 'dâu'}${k.vi.includes('họ') ? ' (họ)' : ''}`;
@@ -388,7 +391,7 @@ function inLawBySpouse(r: Region, k: Kin, a: Person, b: Person): Kin {
 function inLawViaSpouse(k: Kin, a: Person, b: Person): Kin {
   const side = male(a) ? 'vợ' : 'chồng';
   const sideEn = male(a) ? "wife's" : "husband's";
-  const base = k.vi.split(/[\s/(]/)[0] ?? '';
+  const base = firstWord(k.vi);
   const path = [a, ...k.path];
   if (PARENT_WORDS.includes(base))
     return kin(
@@ -427,7 +430,6 @@ export function kinship(
   region: Region = 'north',
 ): Kin | null {
   const byId = indexById(people);
-  const order = new Map(people.map((p, i) => [p.id, i]));
   const a = byId.get(aId);
   const b = byId.get(bId);
   if (!a || !b) return null;
@@ -442,7 +444,7 @@ export function kinship(
 
       return bx !== undefined && by !== undefined && bx !== by
         ? bx < by
-        : (order.get(x.id) ?? 0) < (order.get(y.id) ?? 0);
+        : people.indexOf(x) < people.indexOf(y);
     },
   };
 

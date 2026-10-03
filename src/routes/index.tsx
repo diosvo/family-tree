@@ -24,9 +24,9 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Segmented } from '@/components/ui/segmented';
 import {
   birthYear,
-  childrenOf,
   familyAround,
   generationLevels,
+  hiddenChildren,
   houseOf,
   mainRootId,
   matches,
@@ -111,16 +111,10 @@ function App() {
     [people, shown],
   );
 
-  const hiddenKids = useMemo(() => {
-    const m = new Map<string, number>();
-
-    visiblePeople.forEach((p) => {
-      const n = childrenOf(people, p.id).filter((c) => !shown.has(c.id)).length;
-      if (n) m.set(p.id, n);
-    });
-
-    return m;
-  }, [people, visiblePeople, shown]);
+  const hiddenKids = useMemo(
+    () => hiddenChildren(people, shown),
+    [people, shown],
+  );
 
   const scope: Scope =
     visible === null
