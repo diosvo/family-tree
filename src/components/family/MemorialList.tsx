@@ -100,7 +100,7 @@ export function MemorialList({ people, searching, now, onSelect }: Props) {
                   {deathYear(p) ?? ''}
                 </td>
                 <td
-                  className={`${td} text-right whitespace-nowrap ${days <= SOON ? 'font-medium text-(--c)' : 'text-muted-foreground'}`}
+                  className={`${td} text-right whitespace-nowrap ${days <= SOON ? 'font-bold text-(--c)' : 'text-muted-foreground'}`}
                 >
                   {days === 0 ? t('today') : `${days} ${t('days')}`}
                 </td>

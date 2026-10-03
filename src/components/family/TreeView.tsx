@@ -93,7 +93,7 @@ function PersonNode({ data }: NodeProps<Node<PData>>) {
                   e.stopPropagation();
                   onExpand(p.id);
                 }}
-                className="nodrag nopan absolute -bottom-3 left-1/2 z-10 flex h-6 min-w-6 -translate-x-1/2 cursor-pointer items-center justify-center gap-0.5 rounded-full border border-(--c) bg-card px-1.5 text-[11px] leading-none text-foreground shadow-sm transition-all hover:scale-110 hover:bg-(--c) hover:text-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-95"
+                className="nodrag nopan absolute -bottom-2.5 left-1/2 z-10 flex h-5 min-w-6 -translate-x-1/2 cursor-pointer items-center justify-center gap-0.5 rounded-full border border-(--c) bg-card px-1.5 text-[11px] leading-none text-foreground shadow-sm transition-all hover:scale-110 hover:bg-(--c) hover:text-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-95"
               >
                 <ChevronDown className="h-3 w-3" />
                 {hiddenKids}
@@ -138,11 +138,7 @@ type Unit = {
 const unitWidth = (u: Unit) =>
   u.members.length * W + (u.members.length - 1) * GAP_SPOUSE;
 
-/**
- * Balanced top-down layout: each couple is centered above its children.
- * Children attach through the father when both parents are present; a
- * member's own parents, when they are elsewhere, are linked with a dashed edge.
- */
+/** Balanced top-down layout centered above children. */
 function layout(people: Person[]) {
   const byId = indexById(people);
 
