@@ -2,7 +2,9 @@ import {
   PEOPLE,
   expect,
   gate,
+  it,
   panel,
+  pickOption,
   serverFn,
   test,
   treeNode,
@@ -24,7 +26,32 @@ test.beforeEach(async ({ app }) => {
   await expect(panel(app)).toBeVisible();
 });
 
-test('the button is disabled while sending, so a double click sends once', async ({
+it('each field starts from what the person has now', async ({ app }) => {
+  const send = form(app).getByRole('button', { name: 'Send suggestion' });
+  const field = form(app).getByRole('combobox');
+
+  // Courtesy name is the default field; nothing to send until it changes
+  await expect(valueBox(app)).toHaveValue('Phúc Hậu');
+  await expect(send).toBeDisabled();
+  await valueBox(app).fill('Phúc Đức');
+  await expect(send).toBeEnabled();
+
+  await pickOption(field, /^Date of birth/);
+  await expect(valueBox(app)).toHaveValue('12/03/1900');
+  await pickOption(field, /^Date of death/);
+  await expect(valueBox(app)).toHaveValue('10/11/1970');
+  await pickOption(field, /^Name$/);
+  await expect(valueBox(app)).toHaveValue(PEOPLE.an.name);
+  await pickOption(field, 'Other note');
+  await expect(valueBox(app)).toHaveValue('');
+
+  // Opening someone else shows their value for the same field
+  await pickOption(field, /^Name$/);
+  await treeNode(app, PEOPLE.binh.id).click();
+  await expect(valueBox(app)).toHaveValue(PEOPLE.binh.name);
+});
+
+it('the button is disabled while sending, so a double click sends once', async ({
   app,
 }) => {
   const held = gate();
@@ -50,9 +77,7 @@ test('the button is disabled while sending, so a double click sends once', async
   expect(requests).toBe(1);
 });
 
-test('a failed send says so and keeps the text for a retry', async ({
-  app,
-}) => {
+it('a failed send says so and keeps the text for a retry', async ({ app }) => {
   await app.route(serverFn('addSuggestion'), (route) => route.abort());
 
   await valueBox(app).fill('keep me');
@@ -73,7 +98,7 @@ test('a failed send says so and keeps the text for a retry', async ({
   await expect(form(app).getByRole('alert')).toBeHidden();
 });
 
-test('an empty suggestion is not sent', async ({ app }) => {
+it('an empty suggestion is not sent', async ({ app }) => {
   let requests = 0;
 
   await app.route(serverFn('addSuggestion'), (route) => {

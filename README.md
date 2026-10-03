@@ -42,6 +42,17 @@ npm install
 npm run dev
 ```
 
+### Environment
+
+| Variable                                   | Purpose                                                                                                                                   |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `ADMIN_PASSCODE`                           | Passcode for the admin sign-in.                                                                                                           |
+| `SESSION_SECRET`                           | 32+ random characters, signs the admin session cookie.                                                                                    |
+| `BLOB_STORE_ID` or `BLOB_READ_WRITE_TOKEN` | Keeps the data in a private Vercel Blob, `family.json`. Set by Vercel when a Blob store is connected; **without them, data stays local.** |
+| `DATA_FILE`                                | Local data file when no Blob store is set (default `.data/family.json`).                                                                  |
+
+⚠️ With a Blob variable in `.env` (e.g. from `vercel env pull`), `npm run dev` reads and writes the **production** data. The e2e tests blank both.
+
 ### 💾 Backups
 
 Every save also writes a snapshot, `history/family-<time>.json`, next to `family.json` (in the Blob store, or in `.data/history/` locally). To undo a bad edit, copy a snapshot back over `family.json`. Admins can also download the current data from the Suggestions tab.
@@ -55,6 +66,7 @@ npm run test:e2e   # end-to-end tests (Playwright)
 ```
 
 - **Unit tests** (`src/**/*.test.ts`) cover the kinship terms, lunar calendar, tree helpers, input validation and the store.
+- **End-to-end tests** (`e2e/`) start a dev server that keeps its data in `.data/e2e.json`, starting from the seed data (`src/server/seed-data.ts`). Delete that file to start again from the seed. Admin tests need `ADMIN_PASSCODE`; tests that change data only run with `E2E_WRITES=1`.
 
 ## 🧩 Built with
 

@@ -1,6 +1,7 @@
 import {
   PEOPLE,
   expect,
+  it,
   nav,
   openTab,
   panel,
@@ -21,7 +22,7 @@ test.beforeEach(async ({ app }) => {
   await openTab(app, 'Library');
 });
 
-test('hides the tree and lists people oldest first, ten at a time', async ({
+it('hides the tree and lists people oldest first, ten at a time', async ({
   app,
 }) => {
   await expect(app.locator('.react-flow')).toBeHidden();
@@ -44,7 +45,7 @@ test('hides the tree and lists people oldest first, ten at a time', async ({
   await expect(first.locator('td').nth(3)).toContainText('65');
 });
 
-test('"Show more" reveals the next page', async ({ app }) => {
+it('"Show more" reveals the next page', async ({ app }) => {
   const more = app.getByRole('button', { name: /^Show \d+ more$/ });
   await expect(more).toHaveText('Show 10 more');
 
@@ -53,9 +54,7 @@ test('"Show more" reveals the next page', async ({ app }) => {
   await expect(count(app)).toHaveText(/^20 \/ \d+ people$/);
 });
 
-test('gender filter narrows the list and "All" restores it', async ({
-  app,
-}) => {
+it('gender filter narrows the list and "All" restores it', async ({ app }) => {
   const total = (await count(app).textContent()) ?? '';
   const men = app.locator('tbody tr[style*="--male"]');
   const women = app.locator('tbody tr[style*="--female"]');
@@ -76,7 +75,7 @@ test('gender filter narrows the list and "All" restores it', async ({
   await expect(count(app)).toHaveText(total);
 });
 
-test('changing a filter goes back to the first page', async ({ app }) => {
+it('changing a filter goes back to the first page', async ({ app }) => {
   await app.getByRole('button', { name: /^Show \d+ more$/ }).click();
   await expect(rows(app)).toHaveCount(20);
 
@@ -84,7 +83,7 @@ test('changing a filter goes back to the first page', async ({ app }) => {
   await expect(count(app)).toHaveText(/^10 \/ \d+ people$/);
 });
 
-test('generation level filter', async ({ app }) => {
+it('generation level filter', async ({ app }) => {
   const level = app.getByRole('combobox');
   await expect(level).toContainText('All levels');
 
@@ -104,7 +103,7 @@ test('generation level filter', async ({ app }) => {
   await expect(count(app)).toHaveText(/^10 \/ \d+ people$/);
 });
 
-test('dates can be shown in the lunar calendar', async ({ app }) => {
+it('dates can be shown in the lunar calendar', async ({ app }) => {
   const born = rows(app).first().locator('td').nth(1);
   await expect(button(app, 'Solar')).toHaveAttribute('aria-pressed', 'true');
   await expect(born).toHaveText('06/10/1875');
@@ -118,7 +117,7 @@ test('dates can be shown in the lunar calendar', async ({ app }) => {
   await expect(born).toHaveText('06/10/1875');
 });
 
-test('the search box filters the list', async ({ app }) => {
+it('the search box filters the list', async ({ app }) => {
   const box = app.getByRole('textbox', { name: /^Search/ });
 
   await box.fill(PEOPLE.van.name);
@@ -136,7 +135,29 @@ test('the search box filters the list', async ({ app }) => {
   );
 });
 
-test('clicking a row opens the person on the tree', async ({ app }) => {
+it('the search box matches the year of death', async ({ app }) => {
+  // An died in 1970; nobody else was born or died that year.
+  await app.getByRole('textbox', { name: /^Search/ }).fill('1970');
+  await expect(rows(app)).toHaveCount(1);
+  await expect(rows(app).first()).toContainText(PEOPLE.an.name);
+});
+
+it('the clear button empties the search box', async ({ app }) => {
+  const box = app.getByRole('textbox', { name: /^Search/ });
+  const clear = app.getByRole('button', { name: 'Clear', exact: true });
+
+  await expect(clear).toBeHidden();
+  await box.fill(PEOPLE.van.name);
+  await expect(rows(app)).toHaveCount(1);
+
+  await clear.click();
+  await expect(box).toHaveValue('');
+  await expect(box).toBeFocused();
+  await expect(clear).toBeHidden();
+  await expect(rows(app)).not.toHaveCount(1);
+});
+
+it('clicking a row opens the person on the tree', async ({ app }) => {
   await rows(app).first().click();
 
   await expect(nav(app).getByRole('button', { name: 'Tree' })).toHaveAttribute(

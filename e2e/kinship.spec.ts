@@ -1,6 +1,7 @@
 import {
   PEOPLE,
   expect,
+  it,
   langButton,
   nav,
   openTab,
@@ -32,7 +33,7 @@ test.beforeEach(async ({ app }) => {
   await openTab(app, 'Kinship');
 });
 
-test('starts with two empty pickers, a swap button and the region switch', async ({
+it('starts with two empty pickers, a swap button and the region switch', async ({
   app,
 }) => {
   await expect(app.locator('.react-flow')).toBeHidden();
@@ -64,7 +65,7 @@ test('starts with two empty pickers, a swap button and the region switch', async
   await expect(app.getByText(/ calls /)).toBeHidden();
 });
 
-test('nothing is shown while only one person is chosen', async ({ app }) => {
+it('nothing is shown while only one person is chosen', async ({ app }) => {
   await pickOption(personSelect(app, 'First person'), option(PEOPLE.an));
 
   await expect(personSelect(app, 'First person')).toContainText(
@@ -75,7 +76,7 @@ test('nothing is shown while only one person is chosen', async ({ app }) => {
   await expect(app.getByText(/ calls /)).toBeHidden();
 });
 
-test('describes a parent and child in both directions, and can swap them', async ({
+it('describes a parent and child in both directions, and can swap them', async ({
   app,
 }) => {
   await pickPair(app, PEOPLE.an, PEOPLE.duc);
@@ -108,7 +109,7 @@ test('describes a parent and child in both directions, and can swap them', async
   ).toBeVisible();
 });
 
-test('Northern terms replace Southern ones and the choice is remembered', async ({
+it('Northern terms replace Southern ones and the choice is remembered', async ({
   app,
 }) => {
   await pickPair(app, PEOPLE.an, PEOPLE.duc);
@@ -138,7 +139,7 @@ test('Northern terms replace Southern ones and the choice is remembered', async 
   );
 });
 
-test('recognises spouses', async ({ app }) => {
+it('recognises spouses', async ({ app }) => {
   await pickPair(app, PEOPLE.an, PEOPLE.binh);
 
   await expect(
@@ -146,13 +147,13 @@ test('recognises spouses', async ({ app }) => {
   ).toBeVisible();
 });
 
-test('reports when two people are not related', async ({ app }) => {
+it('reports when two people are not related', async ({ app }) => {
   await pickPair(app, PEOPLE.quang, PEOPLE.toan);
   await expect(app.getByText(NO_RELATION)).toBeVisible();
   await expect(app.getByText(/ calls /)).toBeHidden();
 });
 
-test('shows the path of an indirect relationship and jumps to people on it', async ({
+it('shows the path of an indirect relationship and jumps to people on it', async ({
   app,
 }) => {
   await pickPair(app, PEOPLE.an, PEOPLE.bao);
@@ -186,7 +187,7 @@ test('shows the path of an indirect relationship and jumps to people on it', asy
   );
 });
 
-test('the person cards open the person on the tree', async ({ app }) => {
+it('the person cards open the person on the tree', async ({ app }) => {
   await pickPair(app, PEOPLE.an, PEOPLE.duc);
 
   await app.getByRole('button', { name: 'Nguyễn Văn Đức (Minh Đức)' }).click();
@@ -201,7 +202,7 @@ test('the person cards open the person on the tree', async ({ app }) => {
   );
 });
 
-test('Vietnamese puts the relationship first', async ({ app }) => {
+it('Vietnamese puts the relationship first', async ({ app }) => {
   await pickPair(app, PEOPLE.an, PEOPLE.duc);
   await langButton(app, 'vi').click();
 

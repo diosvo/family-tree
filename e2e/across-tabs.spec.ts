@@ -1,11 +1,11 @@
 import {
   PEOPLE,
   expect,
+  it,
   openTab,
   panel,
   personSelect,
   pickOption,
-  test,
   treeNode,
 } from './fixtures';
 
@@ -27,7 +27,7 @@ async function tourTabs(app: Page) {
   }
 }
 
-test('the open person stays open after visiting the other tabs', async ({
+it('the open person stays open after visiting the other tabs', async ({
   app,
 }) => {
   await treeNode(app, PEOPLE.duc.id).click();
@@ -44,9 +44,7 @@ test('the open person stays open after visiting the other tabs', async ({
   );
 });
 
-test('a person revealed from another tab stays on the tree', async ({
-  app,
-}) => {
+it('a person revealed from another tab stays on the tree', async ({ app }) => {
   // Vân is outside the main house, so the tree has to grow to show her
   await expect(treeNode(app, PEOPLE.van.id)).toBeHidden();
 
@@ -60,7 +58,7 @@ test('a person revealed from another tab stays on the tree', async ({
   await expect(treeNode(app, PEOPLE.van.id)).toBeVisible();
 });
 
-test('"Everyone" is kept after visiting the other tabs', async ({ app }) => {
+it('"Everyone" is kept after visiting the other tabs', async ({ app }) => {
   const everyone = app.getByRole('button', { name: 'Everyone', exact: true });
   await everyone.click();
   await expect(everyone).toHaveAttribute('aria-pressed', 'true');
@@ -70,7 +68,7 @@ test('"Everyone" is kept after visiting the other tabs', async ({ app }) => {
   await expect(treeNode(app, PEOPLE.van.id)).toBeVisible();
 });
 
-test('the search box is shared by the Tree and the Library', async ({
+it('the search box is shared by the Tree, the Library and the Memorials', async ({
   app,
 }) => {
   // Starts in the Library: on the Tree, the open dropdown covers the tab bar
@@ -78,11 +76,12 @@ test('the search box is shared by the Tree and the Library', async ({
   await searchBox(app).fill(PEOPLE.van.name);
   await expect(libraryRows(app)).toHaveCount(1);
 
-  // Other tabs keep the text without filtering anything
+  // Vân is living, so she has no death anniversary
   await openTab(app, 'Memorials');
   await expect(searchBox(app)).toHaveValue(PEOPLE.van.name);
   await expect(app.getByTestId('search-results')).toBeHidden();
-  await expect(app.locator('tbody tr').first()).toBeVisible();
+  await expect(app.locator('table')).toBeHidden();
+  await expect(app.getByRole('status')).toContainText('No match');
 
   // The Tree shows the same text as a dropdown of matches
   await openTab(app, 'Tree');
@@ -92,7 +91,7 @@ test('the search box is shared by the Tree and the Library', async ({
   await expect(results.getByRole('button')).toHaveCount(1);
 });
 
-test('the kinship pair is kept while browsing other tabs', async ({ app }) => {
+it('the kinship pair is kept while browsing other tabs', async ({ app }) => {
   await openTab(app, 'Kinship');
   await pickOption(personSelect(app, 'First person'), option(PEOPLE.an));
   await pickOption(personSelect(app, 'Second person'), option(PEOPLE.duc));
@@ -112,7 +111,7 @@ test('the kinship pair is kept while browsing other tabs', async ({ app }) => {
   await expect(app.getByText('An calls Đức')).toBeVisible();
 });
 
-test('a pair picked in compare mode carries over to the Kinship tab', async ({
+it('a pair picked in compare mode carries over to the Kinship tab', async ({
   app,
 }) => {
   await app.locator('main').getByRole('button', { name: 'Kinship' }).click();

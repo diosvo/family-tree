@@ -1,6 +1,7 @@
 import {
   PEOPLE,
   expect,
+  it,
   nav,
   panel,
   personSelect,
@@ -12,7 +13,7 @@ import type { Page } from '@playwright/test';
 
 const personNodes = (app: Page) => app.locator('.react-flow__node-person');
 
-test('draws the main house by default', async ({ app }) => {
+it('draws the main house by default', async ({ app }) => {
   await expect(app.locator('.react-flow__viewport')).toBeVisible();
   await expect(treeNode(app, PEOPLE.an.id)).toContainText(PEOPLE.an.name);
   await expect(treeNode(app, PEOPLE.an.id)).toContainText('1900–1970');
@@ -30,7 +31,7 @@ test('draws the main house by default', async ({ app }) => {
   );
 });
 
-test('"Everyone" shows the whole family; "Main tree" goes back', async ({
+it('"Everyone" shows the whole family; "Main tree" goes back', async ({
   app,
 }) => {
   const before = await personNodes(app).count();
@@ -50,7 +51,7 @@ test('"Everyone" shows the whole family; "Main tree" goes back', async ({
   await expect(personNodes(app)).toHaveCount(before);
 });
 
-test('a card with hidden children can expand them', async ({ app }) => {
+it('a card with hidden children can expand them', async ({ app }) => {
   const before = await personNodes(app).count();
 
   // Both parents' cards offer the same children; expand from Anh's
@@ -65,7 +66,7 @@ test('a card with hidden children can expand them', async ({ app }) => {
   await expect(treeNode(app, 'p47')).toBeVisible();
 });
 
-test('clicking a card opens the person panel and names the house', async ({
+it('clicking a card opens the person panel and names the house', async ({
   app,
 }) => {
   await treeNode(app, PEOPLE.duc.id).click();
@@ -91,9 +92,7 @@ test('clicking a card opens the person panel and names the house', async ({
   );
 });
 
-test('the panel lists relatives and navigates between them', async ({
-  app,
-}) => {
+it('the panel lists relatives and navigates between them', async ({ app }) => {
   await treeNode(app, PEOPLE.duc.id).click();
   const p = panel(app);
   const heading = p.getByRole('heading', { level: 2 });
@@ -110,7 +109,7 @@ test('the panel lists relatives and navigates between them', async ({
   await expect(heading).toContainText(PEOPLE.duc.name);
 });
 
-test('"Kinship with…" opens the kinship view with the person preselected', async ({
+it('"Kinship with…" opens the kinship view with the person preselected', async ({
   app,
 }) => {
   await treeNode(app, PEOPLE.an.id).click();
@@ -133,7 +132,7 @@ test.describe('compare mode', () => {
   const compareButton = (app: Page) =>
     app.locator('main').getByRole('button', { name: 'Kinship' });
 
-  test('picks two cards, shows how they are related, and opens the details', async ({
+  it('picks two cards, shows how they are related, and opens the details', async ({
     app,
   }) => {
     await expect(compareButton(app)).toHaveAttribute('aria-pressed', 'false');
@@ -166,7 +165,7 @@ test.describe('compare mode', () => {
     );
   });
 
-  test('"Clear" empties the pair and the close button leaves compare mode', async ({
+  it('"Clear" empties the pair and the close button leaves compare mode', async ({
     app,
   }) => {
     await compareButton(app).click();
@@ -185,12 +184,11 @@ test.describe('compare mode', () => {
 });
 
 test.describe('search', () => {
-  const box = (app: Page) =>
-    app.getByRole('textbox', { name: 'Search name, courtesy name, or year…' });
+  const box = (app: Page) => app.getByRole('textbox', { name: /^Search name/ });
 
   const results = (app: Page) => app.getByTestId('search-results');
 
-  test('matches name, courtesy name or birth year, ignoring accents', async ({
+  it('matches name, courtesy name or birth year, ignoring accents', async ({
     app,
   }) => {
     await expect(box(app)).toBeVisible();
@@ -215,7 +213,7 @@ test.describe('search', () => {
     ]);
   });
 
-  test('says "No match" for an unknown term and hides when cleared', async ({
+  it('says "No match" for an unknown term and hides when cleared', async ({
     app,
   }) => {
     await box(app).fill('zzz-nobody');
@@ -225,7 +223,7 @@ test.describe('search', () => {
     await expect(results(app)).toBeHidden();
   });
 
-  test('choosing a result reveals the person on the tree and opens the panel', async ({
+  it('choosing a result reveals the person on the tree and opens the panel', async ({
     app,
   }) => {
     await expect(treeNode(app, PEOPLE.van.id)).toHaveCount(0);
@@ -257,7 +255,7 @@ test.describe('search', () => {
     );
   });
 
-  test('the dropdown only appears on the Tree tab', async ({ app }) => {
+  it('the dropdown only appears on the Tree tab', async ({ app }) => {
     await nav(app).getByRole('button', { name: 'Library' }).click();
     await box(app).fill('1900');
     await expect(results(app)).toBeHidden();

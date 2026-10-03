@@ -1,6 +1,7 @@
 import {
   PEOPLE,
   expect,
+  it,
   langButton,
   nav,
   openTab,
@@ -23,7 +24,7 @@ test.beforeEach(async ({ app }) => {
   await openTab(app, 'Memorials');
 });
 
-test('shows the heading, today in the lunar calendar and the columns', async ({
+it('shows the heading, today in the lunar calendar and the columns', async ({
   app,
 }) => {
   await expect(app.locator('.react-flow')).toBeHidden();
@@ -45,9 +46,7 @@ test('shows the heading, today in the lunar calendar and the columns', async ({
   ]);
 });
 
-test('lists people with a full date of death, soonest first', async ({
-  app,
-}) => {
+it('lists people with a full date of death, soonest first', async ({ app }) => {
   await expect(rows(app).first()).toBeVisible();
 
   const texts = await rows(app).locator('td:last-child').allTextContents();
@@ -69,7 +68,7 @@ test('lists people with a full date of death, soonest first', async ({
   await expect(rows(app).filter({ hasText: PEOPLE.bao.name })).toHaveCount(0);
 });
 
-test(`anniversaries within ${SOON} days are highlighted, later ones muted`, async ({
+it(`anniversaries within ${SOON} days are highlighted, later ones muted`, async ({
   app,
 }) => {
   await expect(rows(app).first()).toBeVisible();
@@ -79,12 +78,12 @@ test(`anniversaries within ${SOON} days are highlighted, later ones muted`, asyn
     const cell = daysCell(rows(app).nth(i));
     const days = parseDays(await cell.innerText());
 
-    if (days <= SOON) await expect(cell).toHaveClass(/font-medium/);
+    if (days <= SOON) await expect(cell).toHaveClass(/font-bold/);
     else await expect(cell).toHaveClass(/text-muted-foreground/);
   }
 });
 
-test('clicking a row opens the person on the tree', async ({ app }) => {
+it('clicking a row opens the person on the tree', async ({ app }) => {
   const an = rows(app).filter({ hasText: PEOPLE.an.name });
   await an.click();
 
@@ -102,7 +101,7 @@ test('clicking a row opens the person on the tree', async ({ app }) => {
   );
 });
 
-test('Vietnamese shows lunar dates as day-month', async ({ app }) => {
+it('Vietnamese shows lunar dates as day-month', async ({ app }) => {
   await langButton(app, 'vi').click();
   await expect(app.getByText('Ngày giỗ sắp tới')).toBeVisible();
 
@@ -111,4 +110,22 @@ test('Vietnamese shows lunar dates as day-month', async ({ app }) => {
   await expect(rows(app).first().locator('td').nth(1)).toHaveText(
     /^\d{2}-\d{2}$/,
   );
+});
+
+it('the search box filters the list', async ({ app }) => {
+  const box = app.getByRole('textbox', { name: /^Search/ });
+
+  await box.fill(PEOPLE.an.name);
+  await expect(app.getByTestId('search-results')).toBeHidden();
+  await expect(rows(app)).toHaveCount(1);
+  await expect(rows(app).first()).toContainText(PEOPLE.an.name);
+
+  // Đức died in 1995.
+  await box.fill('1995');
+  await expect(rows(app)).toHaveCount(1);
+  await expect(rows(app).first()).toContainText(PEOPLE.duc.name);
+
+  await box.fill('zzz-nobody');
+  await expect(app.locator('table')).toBeHidden();
+  await expect(app.getByRole('status')).toContainText('No match');
 });

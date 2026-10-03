@@ -43,15 +43,18 @@ export const test = base.extend<Fixtures>({
   },
 });
 
+/** `test` under its BDD name, for specs that read as `it('…')`. */
+export const it = test;
+
 export { expect };
 
-/** Open the app and wait until React has hydrated and drawn the tree. */
-export async function gotoApp(page: Page, lang: Lang | null = 'en') {
+/** Open the app at `url` and wait until React has hydrated and drawn the tree. */
+export async function gotoApp(page: Page, lang: Lang | null = 'en', url = '/') {
   if (lang) {
     await page.addInitScript((l) => localStorage.setItem('ft-lang', l), lang);
   }
 
-  await page.goto('/');
+  await page.goto(url);
 
   // The canvas is client-only, so seeing it proves hydration and data.
   const canvas = page.locator('.react-flow');
@@ -129,20 +132,30 @@ export function gate() {
 }
 
 export const adminButton = (page: Page) =>
-  page.getByRole('button', { name: 'Admin' });
+  page.getByRole('button', { name: 'Admin', exact: true });
 
-/** Answer the passcode prompt and wait for the admin tools to appear. */
+export const passcodeDialog = (page: Page) =>
+  page.getByRole('dialog', { name: 'Admin passcode' });
+
+/** Type a passcode in the sign-in dialog, opening it first. */
+export async function submitPasscode(page: Page, code: string) {
+  const dialog = passcodeDialog(page);
+  if (!(await dialog.isVisible())) await adminButton(page).click();
+  await dialog.getByLabel('Admin passcode').fill(code);
+  await dialog.getByRole('button', { name: 'Sign in' }).click();
+}
+
+/** Sign in and wait for the admin tools to appear. */
 export async function enterPasscode(page: Page, code: string) {
-  const { dialog, click } = await clickForDialog(page, adminButton(page));
-  await dialog.accept(code);
-  await click;
+  await submitPasscode(page, code);
+  await expect(passcodeDialog(page)).toBeHidden();
 
   await expect(
     nav(page).getByRole('button', { name: /^Suggestions/ }),
   ).toBeVisible();
 }
 
-/** Log in through the passcode prompt; skips the test when no passcode is set. */
+/** Log in through the passcode dialog; skips the test when no passcode is set. */
 export async function loginAsAdmin(page: Page) {
   const code = process.env.ADMIN_PASSCODE;
   test.skip(!code, 'ADMIN_PASSCODE is not set (see .env / .env.e2e)');

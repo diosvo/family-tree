@@ -5,6 +5,7 @@ import {
   expect,
   gate,
   gotoApp,
+  it,
   loginAsAdmin,
   openTab,
   panel,
@@ -79,7 +80,7 @@ async function suggest(
   ).toBeVisible();
 }
 
-test('an admin can add a person with a father', async ({ app }) => {
+it('an admin can add a person with a father', async ({ app }) => {
   await loginAsAdmin(app);
   await app.getByRole('button', { name: 'Add', exact: true }).click();
 
@@ -103,7 +104,7 @@ test('an admin can add a person with a father', async ({ app }) => {
   ).toBeVisible();
 });
 
-test('the new person appears in the Library and Kinship views', async ({
+it('the new person appears in the Library and Kinship views', async ({
   app,
 }) => {
   await openTab(app, 'Library');
@@ -120,11 +121,32 @@ test('the new person appears in the Library and Kinship views', async ({
   );
 
   await expect(
-    app.getByText(`${FATHER.name} is ${NAME}’s father (bố)`),
+    app.getByText(`${FATHER.name} is ${NAME}’s father (ba)`),
   ).toBeVisible();
 });
 
-test('a suggestion reaches the admin inbox and can be accepted', async ({
+it('an admin can edit a person', async ({ app }) => {
+  await loginAsAdmin(app);
+  await openTestPerson(app);
+  await panel(app).getByRole('button', { name: 'Edit' }).click();
+
+  const dialog = app.getByRole('dialog', { name: `Edit: ${NAME}` });
+  // The form starts from the saved details
+  await expect(dialog.getByPlaceholder('Full name *')).toHaveValue(NAME);
+  await expect(dialog.getByPlaceholder(/^Born, solar/)).toHaveValue('1999');
+
+  await expect(
+    dialog.getByRole('combobox').filter({ hasText: FATHER.name }),
+  ).toBeVisible();
+
+  await dialog.getByPlaceholder(/^Died, solar/).fill('1/2/2020');
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(dialog).toBeHidden();
+
+  await expect(panel(app)).toContainText('Male · 1999–2020');
+});
+
+it('a suggestion reaches the admin inbox and can be accepted', async ({
   app,
 }) => {
   await loginAsAdmin(app);
@@ -153,7 +175,7 @@ test('a suggestion reaches the admin inbox and can be accepted', async ({
   );
 });
 
-test('a suggestion can be dismissed without changing the person', async ({
+it('a suggestion can be dismissed without changing the person', async ({
   app,
 }) => {
   await loginAsAdmin(app);
@@ -177,7 +199,7 @@ test('a suggestion can be dismissed without changing the person', async ({
   await expect(panel(app)).not.toContainText('ignore me please');
 });
 
-test("a guest's suggestion reaches the admin in another session", async ({
+it("a guest's suggestion reaches the admin in another session", async ({
   app,
   browser,
 }) => {
@@ -201,7 +223,7 @@ test("a guest's suggestion reaches the admin in another session", async ({
   await expect(row).toBeHidden();
 });
 
-test('Accept and Dismiss are disabled while resolving; the Library updates', async ({
+it('Accept and Dismiss are disabled while resolving; the Library updates', async ({
   app,
 }) => {
   await loginAsAdmin(app);
@@ -240,7 +262,7 @@ test('Accept and Dismiss are disabled while resolving; the Library updates', asy
   await expect(libraryRow(app)).not.toContainText('1999');
 });
 
-test('an admin can remove a person after confirming', async ({ app }) => {
+it('an admin can remove a person after confirming', async ({ app }) => {
   await loginAsAdmin(app);
   await openTestPerson(app);
 

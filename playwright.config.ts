@@ -12,18 +12,17 @@ function envFile(file: string): NodeJS.Dict<string> {
   }
 }
 
-/*
- * Environment for the dev server and the tests: `.env`, then `.env.e2e` on top,
- * then anything already set in the shell. The Blob token is blanked so the dev
- * server always keeps its data in a local file, which starts from the seed
- * data the tests assume (src/server/seed-data.ts).
- */
+// Merge `.env`, `.env.e2e`, and shell env. Blob variables are blanked so the
+// dev server uses a local file seeded from src/server/seed-data.ts.
 const merged: NodeJS.Dict<string> = {
   ...envFile('.env'),
   ...envFile('.env.e2e'),
   ...process.env,
+  BLOB_STORE_ID: '',
   BLOB_READ_WRITE_TOKEN: '',
   DATA_FILE: '.data/e2e.json',
+  // Prevent wrong-passcode tests from locking out the reused dev server.
+  LOGIN_THROTTLE: 'off',
 };
 
 const env = Object.fromEntries(
@@ -39,7 +38,9 @@ for (const key of ['ADMIN_PASSCODE', 'E2E_WRITES']) {
   if (value !== undefined) process.env[key] ??= value;
 }
 
-const baseURL = merged.E2E_BASE_URL ?? 'http://localhost:3000';
+// Its own port: locally Playwright reuses a server already running there, and
+// a plain `npm run dev` on 3000 may be using the production Blob store.
+const baseURL = merged.E2E_BASE_URL ?? 'http://localhost:3100';
 const port = new URL(baseURL).port || '80';
 const isCI = !!process.env.CI;
 
