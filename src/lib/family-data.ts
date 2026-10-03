@@ -123,9 +123,9 @@ const norm = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
 
 export const matches = (p: Person, q: string) =>
-  norm(`${p.name} ${p.courtesyName ?? ''} ${birthYear(p) ?? ''}`).includes(
-    norm(q),
-  );
+  norm(
+    `${p.name} ${p.courtesyName ?? ''} ${birthYear(p) ?? ''} ${deathYear(p) ?? ''}`,
+  ).includes(norm(q));
 
 /** Climb the father line (mother if no father is known) to the top ancestor. */
 function topAncestor(byId: Map<string, Person>, id: string) {

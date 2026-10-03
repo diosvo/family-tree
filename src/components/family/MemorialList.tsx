@@ -1,4 +1,4 @@
-import { CalendarOff } from 'lucide-react';
+import { CalendarOff, SearchX } from 'lucide-react';
 
 import { EmptyState } from '@/components/EmptyState';
 import { deathYear } from '@/lib/family-data';
@@ -20,11 +20,13 @@ const SOON = 30;
 
 type Props = {
   people: Person[];
+  /** `people` is narrowed by the search box. */
+  searching: boolean;
   now: Date | null;
   onSelect: (id: string) => void;
 };
 
-export function MemorialList({ people, now, onSelect }: Props) {
+export function MemorialList({ people, searching, now, onSelect }: Props) {
   const { t, lang } = useT();
 
   const upcoming = now
@@ -55,13 +57,21 @@ export function MemorialList({ people, now, onSelect }: Props) {
         </>
       }
     >
-      {now && !upcoming.length && (
-        <EmptyState
-          icon={CalendarOff}
-          title={t('noMemorials')}
-          description={t('noMemorialsHint')}
-        />
-      )}
+      {now &&
+        !upcoming.length &&
+        (searching ? (
+          <EmptyState
+            icon={SearchX}
+            title={t('noMatch')}
+            description={t('noFilterMatch')}
+          />
+        ) : (
+          <EmptyState
+            icon={CalendarOff}
+            title={t('noMemorials')}
+            description={t('noMemorialsHint')}
+          />
+        ))}
       {upcoming.length > 0 && (
         <table className="w-full border-collapse text-sm">
           <thead>

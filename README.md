@@ -21,6 +21,7 @@ It helps families remember where they come from, how relatives address one anoth
 - Search and filter relatives by generation level and gender, with birth dates in both solar and lunar calendars.
 - Suggest updates to a record and let an admin review them.
 - Admins add, edit and remove people, and can download all the data as JSON.
+- Share a link to a person, a tab or a search: the address bar keeps the current view.
 - Switch between Vietnamese and English anytime.
 - Light, dark, or system theme, remembered across visits.
 

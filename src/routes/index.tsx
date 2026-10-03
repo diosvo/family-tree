@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
-import { ClientOnly, createFileRoute } from '@tanstack/react-router';
-import { ArrowLeftRight, Plus, Search, Sprout } from 'lucide-react';
+import {
+  ClientOnly,
+  createFileRoute,
+  useHydrated,
+} from '@tanstack/react-router';
+import { ArrowLeftRight, Plus, Sprout } from 'lucide-react';
 
 import { AdminButton } from '@/components/AdminButton';
 import { EmptyState } from '@/components/EmptyState';
@@ -15,11 +19,11 @@ import { PersonPanel } from '@/components/family/PersonPanel';
 import { SuggestionList } from '@/components/family/SuggestionList';
 import TreeView from '@/components/family/TreeView';
 import { Footer } from '@/components/Footer';
+import { SearchBox } from '@/components/SearchBox';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Dialog } from '@/components/ui/dialog';
 import { Segmented } from '@/components/ui/segmented';
 import {
-  birthYear,
   familyAround,
   generationLevels,
   hiddenChildren,
@@ -35,7 +39,35 @@ import { LANGS, LangProvider, useT } from '@/lib/i18n';
 import { btn, btnPrimary } from '@/lib/utils';
 import { loadFamily } from '@/server/family';
 
+const TABS = [
+  'tree',
+  'library',
+  'memorials',
+  'kinship',
+  'suggestions',
+] as const;
+
+type Tab = (typeof TABS)[number];
+
+/**
+ * What the URL keeps, so a link opens the same view: the tab (absent = tree),
+ * the selected person and the search text.
+ */
+type Search = { tab?: Tab; person?: string; q?: string };
+
+const text = (v: unknown) =>
+  // `?q=1970` is parsed as a number.
+  typeof v === 'string' || typeof v === 'number' ? String(v) : undefined;
+
 export const Route = createFileRoute('/')({
+  validateSearch: (s: Record<string, unknown>): Search => ({
+    tab:
+      TABS.includes(s.tab as Tab) && s.tab !== 'tree'
+        ? (s.tab as Tab)
+        : undefined,
+    person: text(s.person) || undefined,
+    q: text(s.q) || undefined,
+  }),
   head: () => ({
     meta: [
       { title: 'Gia Phả — Family Tree' },
@@ -51,7 +83,15 @@ export const Route = createFileRoute('/')({
       },
     ],
   }),
-  loader: () => loadFamily(),
+  // The data only changes through writes, which call `router.invalidate()`;
+  // changing the URL search (e.g. typing in the search box) must not refetch.
+  shouldReload: false,
+  loader: {
+    handler: () => loadFamily(),
+    // A write resolves once the fresh data is in: a background reload could
+    // be dropped by the navigation that follows (e.g. closing the panel).
+    staleReloadMode: 'blocking',
+  },
   component: RouteComponent,
 });
 
@@ -67,7 +107,6 @@ function RouteComponent() {
   );
 }
 
-type Tab = 'tree' | 'library' | 'memorials' | 'kinship' | 'suggestions';
 type Scope = 'main' | 'all' | 'custom';
 /** Generations of the main house shown on first load. */
 const MAIN_DEPTH = 4;
@@ -75,20 +114,47 @@ const MAIN_DEPTH = 4;
 function App() {
   const { people, byId, suggestions, isAdmin } = useFamily();
   const { t, lang, setLang } = useT();
-  const [tab, setTab] = useState<Tab>('tree');
-  const [selectedId, setSelectedId] = useState<string>();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+
+  const tab: Tab =
+    search.tab === 'suggestions' && !isAdmin ? 'tree' : (search.tab ?? 'tree');
+
+  const selectedId = search.person;
+  const q = search.q ?? '';
+
+  /** Change some of the URL state; typing replaces history instead of adding. */
+  const go = useCallback(
+    (patch: Search, replace = false) =>
+      void navigate({
+        search: (prev) => {
+          const next = { ...prev, ...patch };
+
+          return {
+            tab: next.tab === 'tree' ? undefined : next.tab,
+            person: next.person || undefined,
+            q: next.q || undefined,
+          };
+        },
+        replace,
+        resetScroll: false,
+      }),
+    [navigate],
+  );
+
+  const setTab = (x: Tab) => go({ tab: x });
   /** People drawn in the tree; null = the main house at MAIN_DEPTH. */
   const [visible, setVisible] = useState<Set<string> | null>(null);
   /** Family to frame after an expansion; null = fit the whole tree. */
   const [focus, setFocus] = useState<string[] | null>(null);
-  const [q, setQ] = useState('');
   /** The two people compared in the kinship view. */
   const [pair, setPair] = useState<[string, string]>(['', '']);
   /** When on, tapping cards in the tree fills the pair instead of selecting. */
   const [compare, setCompare] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => setNow(new Date()), []);
+  const hydrated = useHydrated();
+  /** Today, on the client only: the server's clock and time zone may differ. */
+  const now = useMemo(() => (hydrated ? new Date() : null), [hydrated]);
 
   const mainIds = useMemo(() => {
     const root = mainRootId(people);
@@ -112,6 +178,20 @@ function App() {
     [people, shown],
   );
 
+  /** The selected person last made visible, so it happens once each. */
+  const [revealed, setRevealed] = useState<string>();
+
+  // A newly selected person (a tap, a link or Back) is added to the tree if
+  // hidden. Done while rendering, so the tree never draws without them.
+  if (selectedId !== revealed) {
+    setRevealed(selectedId);
+
+    if (selectedId && byId.has(selectedId) && !shown.has(selectedId)) {
+      setVisible(reveal(people, shown, selectedId));
+      setFocus(null);
+    }
+  }
+
   const scope: Scope =
     visible === null
       ? 'main'
@@ -124,16 +204,8 @@ function App() {
   const empty = people.length === 0;
   const results = q ? people.filter((p) => matches(p, q)) : people;
 
-  /** Select a person; make them visible in the tree if they are hidden. */
-  const select = (id: string) => {
-    setSelectedId(id);
-    setTab('tree');
-
-    if (!shown.has(id)) {
-      setVisible(reveal(people, shown, id));
-      setFocus(null);
-    }
-  };
+  /** Select a person and show them on the tree. */
+  const select = (id: string) => go({ person: id, tab: 'tree' });
 
   const expand = useCallback(
     (id: string) => {
@@ -155,7 +227,8 @@ function App() {
   /** Show a person's house (họ) and make them the selected person. */
   const showHouse = (id: string) => {
     show(houseOf(people, id));
-    setSelectedId(id);
+    setRevealed(id);
+    go({ person: id });
   };
 
   const setScope = (s: Scope) =>
@@ -204,41 +277,13 @@ function App() {
           </div>
         </div>
 
-        <div className="relative mt-3">
-          <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={t('search')}
-            aria-label={t('search')}
-            className="w-full rounded-md border bg-background py-2 pr-3 pl-8 text-sm outline-none focus:ring-2 focus:ring-ring"
-          />
-          {q && tab === 'tree' && (
-            <div
-              data-testid="search-results"
-              className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover shadow-lg"
-            >
-              {results.slice(0, 12).map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    select(p.id);
-                    setQ('');
-                  }}
-                  className="block w-full border-b px-3 py-2 text-left text-sm last:border-b-0 hover:bg-accent"
-                >
-                  {p.name}{' '}
-                  <span className="text-muted-foreground">{birthYear(p)}</span>
-                </button>
-              ))}
-              {!results.length && (
-                <div className="px-3 py-2 text-sm text-muted-foreground">
-                  {t('noMatch')}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <SearchBox
+          value={q}
+          onChange={(x) => go({ q: x }, true)}
+          results={results}
+          dropdown={tab === 'tree'}
+          onPick={(id) => go({ person: id, tab: 'tree', q: '' })}
+        />
 
         <nav className="mt-2 -mb-px flex gap-4 overflow-x-auto text-sm">
           {tabs.map((x) => (
@@ -325,7 +370,7 @@ function App() {
               <aside className="max-h-[55dvh] min-h-0 overflow-auto border-t bg-card md:max-h-none md:w-96 md:shrink-0 md:border-t-0 md:border-l">
                 <PersonPanel
                   person={selected}
-                  onClose={() => setSelectedId(undefined)}
+                  onClose={() => go({ person: undefined })}
                   onSelect={select}
                   onHouse={showHouse}
                   onCompare={(id) => {
@@ -346,7 +391,12 @@ function App() {
           />
         )}
         {!empty && tab === 'memorials' && (
-          <MemorialList people={people} now={now} onSelect={select} />
+          <MemorialList
+            people={results}
+            searching={!!q}
+            now={now}
+            onSelect={select}
+          />
         )}
         {!empty && tab === 'kinship' && (
           <KinshipView
